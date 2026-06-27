@@ -301,6 +301,149 @@ function initMyListLink() {
   });
 }
 
+// ── Live data from proxy server ──────────────────────────
+// Titles fetched from the Node.js backend (which scrapes flixbaba.mov).
+// Falls back gracefully to the hardcoded MOVIES data if the server is offline.
+
+let LIVE_TITLES = [];  // populated after fetch
+
+function liveHue(i) {
+  const hues = ['260,70%','340,65%','150,55%','220,65%','30,75%','190,60%','270,60%','10,65%'];
+  return hues[i % hues.length];
+}
+
+function apiToMovie(t, i) {
+  return {
+    id:     `live-${i}`,
+    title:  t.title,
+    year:   t.year  || '',
+    rating: t.rating || '',
+    genre:  t.genre || 'Movie',
+    dur:    '',
+    desc:   t.desc  || `Watch "${t.title}" on FlixBaba.`,
+    hue:    liveHue(i),
+    poster: t.poster ? `/api/image?url=${encodeURIComponent(t.poster)}` : '',
+    link:   t.link  || 'https://flixbaba.mov',
+  };
+}
+
+function buildLiveCard(movie) {
+  const card = document.createElement('div');
+  card.className = 'fb-card';
+  card.dataset.id = movie.id;
+
+  const posterHtml = movie.poster
+    ? `<img class="fb-card__poster" src="${movie.poster}" alt="${movie.title}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    : '';
+
+  card.innerHTML = `
+    ${posterHtml}
+    <div class="fb-card__poster-placeholder" style="background:${posterGradient(movie.hue)};${movie.poster ? 'display:none' : ''}">
+      <i class="fa-solid ${posterIcon(movie.genre)}" style="font-size:2rem;opacity:.6;color:#fff"></i>
+      <span style="color:rgba(255,255,255,.75);font-size:.72rem;line-height:1.3">${movie.title}</span>
+    </div>
+    <span class="fb-card__genre-tag">${movie.genre}</span>
+    <div class="fb-card__overlay">
+      <div class="fb-card__play"><i class="fa-solid fa-play" style="margin-left:2px"></i></div>
+      <div class="fb-card__title">${movie.title}</div>
+      <div class="fb-card__info">
+        ${movie.rating ? `<span class="rating"><i class="fa-solid fa-star"></i> ${movie.rating}</span>` : ''}
+        ${movie.year   ? `<span>${movie.year}</span>` : ''}
+      </div>
+    </div>
+  `;
+
+  card.addEventListener('click', () => openLiveModal(movie));
+  return card;
+}
+
+function openLiveModal(movie) {
+  document.getElementById('modalTitle').textContent = movie.title;
+  document.getElementById('modalDesc').textContent  = movie.desc;
+
+  const hero = document.getElementById('modalHero');
+  if (movie.poster) {
+    hero.style.backgroundImage = `url(${movie.poster})`;
+    hero.style.backgroundSize  = 'cover';
+    hero.style.backgroundPosition = 'center';
+  } else {
+    hero.style.background = posterGradient(movie.hue);
+  }
+
+  document.getElementById('modalMeta').innerHTML = `
+    ${movie.rating ? `<span style="color:#f59e0b;font-weight:700"><i class="fa-solid fa-star"></i> ${movie.rating}</span>` : ''}
+    ${movie.year   ? `<span>${movie.year}</span>` : ''}
+    <span style="background:rgba(139,92,246,.25);border:1px solid rgba(139,92,246,.4);color:#c4b5fd;padding:2px 10px;border-radius:99px;font-size:.78rem">${movie.genre}</span>
+  `;
+
+  const watchBtn = document.getElementById('modalWatch');
+  watchBtn.href = movie.link || 'https://flixbaba.mov';
+
+  document.getElementById('modalAddList').onclick = () => showToast(`"${movie.title}" saved!`);
+
+  document.getElementById('modalTags').innerHTML = [movie.genre, movie.year]
+    .filter(Boolean).map(t => `<span class="fb-modal__tag">${t}</span>`).join('');
+
+  document.getElementById('fbModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function insertLiveRow(titles) {
+  if (!titles.length) return;
+
+  const main = document.getElementById('movies');
+  const section = document.createElement('section');
+  section.className = 'fb-row';
+  section.id = 'rowLive';
+  section.innerHTML = `
+    <div class="fb-row__header">
+      <h2 class="fb-row__title">
+        <i class="fa-solid fa-satellite-dish" style="color:#22d3ee"></i>
+        Live from FlixBaba
+        <span style="font-size:.65rem;font-weight:400;color:#9090b0;margin-left:8px">${titles.length} titles</span>
+      </h2>
+      <a href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-row__see-all">
+        Browse all <i class="fa-solid fa-arrow-right"></i>
+      </a>
+    </div>
+    <div class="fb-row__track-wrap">
+      <button class="fb-row__arrow fb-row__arrow--left" aria-label="Scroll left"><i class="fa-solid fa-chevron-left"></i></button>
+      <div class="fb-row__track" id="rowLiveTrack"></div>
+      <button class="fb-row__arrow fb-row__arrow--right" aria-label="Scroll right"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
+  `;
+
+  // Insert before the first existing row so it appears at the top
+  main.insertBefore(section, main.firstElementChild);
+
+  const track = section.querySelector('#rowLiveTrack');
+  titles.forEach((t, i) => {
+    const movie = apiToMovie(t, i);
+    LIVE_TITLES.push(movie);
+    track.appendChild(buildLiveCard(movie));
+  });
+
+  // Wire up the arrow buttons for this new row
+  const wrap = section.querySelector('.fb-row__track-wrap');
+  wrap.querySelector('.fb-row__arrow--left').addEventListener('click',  () => track.scrollBy({ left: -600, behavior: 'smooth' }));
+  wrap.querySelector('.fb-row__arrow--right').addEventListener('click', () => track.scrollBy({ left:  600, behavior: 'smooth' }));
+
+  showToast(`${titles.length} titles loaded live from FlixBaba`);
+}
+
+async function fetchLiveTitles() {
+  try {
+    const res  = await fetch('/api/titles', { signal: AbortSignal.timeout(14000) });
+    if (!res.ok) throw new Error(`Server responded ${res.status}`);
+    const data = await res.json();
+    if (data.ok && data.titles && data.titles.length > 0) {
+      insertLiveRow(data.titles);
+    }
+  } catch (_) {
+    // Server not running — silently fall back to hardcoded data; no user-facing error.
+  }
+}
+
 // ── Boot ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initHero();
@@ -310,4 +453,5 @@ document.addEventListener('DOMContentLoaded', () => {
   initSearch();
   initNavScroll();
   initMyListLink();
+  fetchLiveTitles();  // attempt live data; fails silently if server is offline
 });
