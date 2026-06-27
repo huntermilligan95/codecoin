@@ -1,0 +1,313 @@
+'use strict';
+
+// ── Movie Data ───────────────────────────────────────────
+const MOVIES = {
+  trending: [
+    { id: 101, title: 'Shadow Protocol',   year: 2024, rating: '8.2', genre: 'Thriller',  dur: '2h 14m', desc: 'A rogue AI system begins manipulating world leaders, and a disgraced cyber-agent is the only one who can stop it before it rewrites history.', hue: '260,80%' },
+    { id: 102, title: 'Neon Assassin',     year: 2024, rating: '7.8', genre: 'Action',    dur: '1h 55m', desc: 'In a future Tokyo ruled by megacorporations, a retired hitman is pulled back in when her daughter is taken.',                             hue: '340,70%' },
+    { id: 103, title: 'The Last Garden',   year: 2024, rating: '8.5', genre: 'Drama',     dur: '2h 02m', desc: 'An elderly botanist uncovers a journal that leads her to a secret garden — and the family she never knew she had.',                    hue: '150,55%' },
+    { id: 104, title: 'Starfall',          year: 2024, rating: '7.6', genre: 'Sci-Fi',    dur: '2h 18m', desc: 'When a meteor shower rains alien artifacts across Earth, a geologist races to solve the puzzle before a shadow government does.',       hue: '220,70%' },
+    { id: 105, title: 'Bitter Sweet',      year: 2024, rating: '7.2', genre: 'Comedy',    dur: '1h 48m', desc: 'Two rival pastry chefs are forced to share a kitchen for a national competition, with deliciously unexpected results.',                 hue: '30,80%'  },
+    { id: 106, title: 'Crimson Horizon',   year: 2024, rating: '7.9', genre: 'Action',    dur: '1h 58m', desc: 'A marine biologist discovers an ancient civilization beneath the Pacific — and a deadly secret that nations will kill to protect.',     hue: '0,70%'   },
+    { id: 107, title: 'Hollow Moon',       year: 2024, rating: '8.1', genre: 'Horror',    dur: '1h 42m', desc: 'A family moves into a lunar research station only to discover the previous crew did not leave — they were taken.',                     hue: '240,30%' },
+    { id: 108, title: 'Velocity',          year: 2024, rating: '7.4', genre: 'Action',    dur: '1h 50m', desc: 'When quantum physics meets underground racing, one driver must outrun the laws of physics itself to save his crew.',                  hue: '190,75%' },
+  ],
+  newReleases: [
+    { id: 201, title: 'The Cartographer', year: 2024, rating: '8.3', genre: 'Adventure', dur: '2h 08m', desc: 'A 19th-century mapmaker ventures into unmapped territory and discovers a civilization that should not exist.',                         hue: '40,65%'  },
+    { id: 202, title: 'Echo Chamber',     year: 2024, rating: '7.7', genre: 'Thriller',  dur: '1h 52m', desc: 'A journalist investigating online radicalization discovers her own past is intertwined with the movement she is exposing.',            hue: '200,60%' },
+    { id: 203, title: 'Parallel Lives',   year: 2024, rating: '8.0', genre: 'Sci-Fi',    dur: '2h 05m', desc: 'Two versions of the same person from parallel timelines must cooperate to prevent the collapse of both their worlds.',                hue: '280,65%' },
+    { id: 204, title: 'Wild Bloom',       year: 2024, rating: '7.5', genre: 'Romance',   dur: '1h 44m', desc: 'A florist and a landscape architect butt heads over a historic estate renovation — until they find common ground.',                   hue: '320,65%' },
+    { id: 205, title: 'The Translator',   year: 2024, rating: '8.4', genre: 'Drama',     dur: '2h 12m', desc: 'A UN interpreter becomes the only witness to a murder and must navigate political immunity to bring justice.',                         hue: '170,55%' },
+    { id: 206, title: 'Dark Matter',      year: 2024, rating: '7.8', genre: 'Sci-Fi',    dur: '1h 57m', desc: 'A physicist wakes up in a lab with no memory and must piece together how she got there before the experiment continues.',             hue: '250,55%' },
+    { id: 207, title: 'The Crossing',     year: 2024, rating: '7.6', genre: 'Drama',     dur: '1h 48m', desc: 'Refugees from five different nations find themselves stranded together in a border town during a historic blizzard.',                 hue: '210,50%' },
+    { id: 208, title: 'Night Market',     year: 2024, rating: '7.9', genre: 'Thriller',  dur: '1h 55m', desc: 'An undercover agent infiltrates an underground auction of rare artifacts and uncovers a global conspiracy.',                           hue: '20,60%'  },
+  ],
+  action: [
+    { id: 301, title: 'Iron Fist',        year: 2023, rating: '7.5', genre: 'Action',    dur: '2h 05m', desc: 'A retired boxer returns to the ring to save his gym from a crime syndicate taking over his neighborhood.',                            hue: '10,70%'  },
+    { id: 302, title: 'Blackout Protocol',year: 2023, rating: '8.0', genre: 'Thriller',  dur: '1h 58m', desc: 'A CIA analyst has 24 hours to prevent a coordinated attack on global power grids.',                                                   hue: '215,55%' },
+    { id: 303, title: 'Shockwave',        year: 2023, rating: '7.3', genre: 'Action',    dur: '1h 52m', desc: 'A bomb disposal expert must defuse a series of explosives planted across a major city in under four hours.',                          hue: '35,70%'  },
+    { id: 304, title: 'Ghost Strike',     year: 2023, rating: '7.7', genre: 'Action',    dur: '1h 48m', desc: 'An elite special forces unit must stop an invisible assassin from eliminating world leaders at a G7 summit.',                        hue: '240,40%' },
+    { id: 305, title: 'Rogue State',      year: 2023, rating: '7.9', genre: 'Thriller',  dur: '2h 02m', desc: 'A diplomat discovers her host nation is planning a bioweapon attack and must alert the world from inside enemy territory.',          hue: '350,60%' },
+    { id: 306, title: 'Combat Zone',      year: 2023, rating: '7.4', genre: 'Action',    dur: '1h 45m', desc: 'A photojournalist embedded with marines finds himself in the middle of an ambush that was an inside job.',                           hue: '90,40%'  },
+    { id: 307, title: 'Red Line',         year: 2023, rating: '8.1', genre: 'Action',    dur: '2h 08m', desc: 'A train carrying dangerous cargo is hijacked, and a transit marshal must reclaim control with civilians on board.',                  hue: '0,80%'   },
+    { id: 308, title: 'Steel Rain',       year: 2023, rating: '7.6', genre: 'Thriller',  dur: '1h 55m', desc: 'A mercenary hired to protect a weapons convoy discovers the real target is on the convoy itself.',                                   hue: '200,45%' },
+  ],
+  comedy: [
+    { id: 401, title: 'Roommate Roulette',          year: 2023, rating: '7.0', genre: 'Comedy', dur: '1h 38m', desc: 'Four strangers are forced to share a one-bedroom apartment after a rental app glitch — chaos and friendship ensue.', hue: '50,75%'  },
+    { id: 402, title: 'Wedding Planner\'s Dilemma', year: 2023, rating: '7.3', genre: 'Comedy', dur: '1h 44m', desc: 'A perfectionist wedding planner must organize three ceremonies in one weekend, each more chaotic than the last.',   hue: '310,65%' },
+    { id: 403, title: 'Office Hours',               year: 2023, rating: '7.5', genre: 'Comedy', dur: '1h 35m', desc: 'When a tech startup accidentally hires a retired stand-up comedian as CEO, the office will never be the same.',     hue: '180,55%' },
+    { id: 404, title: 'Family Recipe',              year: 2023, rating: '7.8', genre: 'Comedy', dur: '1h 52m', desc: 'A dysfunctional family discovers their late grandmother\'s secret cookbook — and her secret life as a chef.',        hue: '25,75%'  },
+    { id: 405, title: 'Travel Bugs',                year: 2023, rating: '7.2', genre: 'Comedy', dur: '1h 40m', desc: 'Two travel influencers with opposite styles are paired for a round-the-world trip by their shared agency.',          hue: '160,60%' },
+    { id: 406, title: 'The Interview',              year: 2023, rating: '7.4', genre: 'Comedy', dur: '1h 32m', desc: 'A series of increasingly absurd job interviews leads one candidate into a rabbit hole of corporate madness.',         hue: '260,55%' },
+  ],
+  scifi: [
+    { id: 501, title: 'The Void Expedition', year: 2023, rating: '8.3', genre: 'Sci-Fi', dur: '2h 25m', desc: 'A crew of astronauts on a deep-space mission encounters a signal that could not have been sent by humans.', hue: '230,70%' },
+    { id: 502, title: 'Neural Link',         year: 2023, rating: '8.0', genre: 'Sci-Fi', dur: '1h 58m', desc: 'When a neural interface becomes mandatory in a smart city, a technophobe discovers what it really connects to.', hue: '185,65%' },
+    { id: 503, title: 'Time Fracture',       year: 2023, rating: '7.7', genre: 'Sci-Fi', dur: '2h 02m', desc: 'A physicist creates a device that shifts time by 48 hours, only to discover each jump creates a darker timeline.', hue: '270,60%' },
+    { id: 504, title: 'Synthetic',           year: 2023, rating: '8.5', genre: 'Sci-Fi', dur: '2h 18m', desc: 'An android petitions for legal rights and personhood in a near-future America deeply divided on the question.', hue: '200,55%' },
+    { id: 505, title: 'Colony Zero',         year: 2023, rating: '7.9', genre: 'Sci-Fi', dur: '2h 05m', desc: 'Survivors of a colony ship crash on an unknown planet and must build civilization under a hostile sun.', hue: '40,60%'  },
+    { id: 506, title: 'The Upload',          year: 2023, rating: '7.6', genre: 'Sci-Fi', dur: '1h 52m', desc: 'A billionaire uploads his consciousness before death and fights to preserve his digital existence.', hue: '290,60%' },
+  ],
+  drama: [
+    { id: 601, title: 'Letters to Nobody', year: 2023, rating: '8.4', genre: 'Drama', dur: '1h 58m', desc: 'A war veteran writes letters to the son of a man he could not save, and a profound connection unfolds across years.', hue: '210,50%' },
+    { id: 602, title: 'The Verdict',       year: 2023, rating: '8.1', genre: 'Drama', dur: '2h 12m', desc: 'A small-town jury must decide the fate of a man everyone knows — in a trial that tears the community apart.', hue: '340,45%' },
+    { id: 603, title: 'Inheritance',       year: 2023, rating: '7.9', genre: 'Drama', dur: '1h 52m', desc: 'When siblings reunite after their father\'s death, long-buried secrets challenge everything they believed.', hue: '30,55%'  },
+    { id: 604, title: 'The River Between', year: 2023, rating: '8.2', genre: 'Drama', dur: '2h 05m', desc: 'Two families on opposite sides of a river in rural Kenya must cooperate during a drought to save their children.', hue: '140,50%' },
+    { id: 605, title: 'Long Shadow',       year: 2023, rating: '7.7', genre: 'Drama', dur: '1h 48m', desc: 'A beloved athlete faces the end of his career and must build a life outside the identity that defined him.', hue: '220,45%' },
+    { id: 606, title: 'Unbroken Ground',   year: 2023, rating: '8.0', genre: 'Drama', dur: '1h 55m', desc: 'A refugee family rebuilds their lives in a new country while navigating cultural identity and belonging.', hue: '160,45%' },
+  ],
+};
+
+// ── State ────────────────────────────────────────────────
+let myList = JSON.parse(localStorage.getItem('fbMyList') || '[]');
+
+// ── Helpers ──────────────────────────────────────────────
+function posterGradient(hue) {
+  const [h, sl] = hue.split(',');
+  return `linear-gradient(160deg, hsl(${h},${sl},22%) 0%, hsl(${h},${sl},12%) 100%)`;
+}
+
+function posterIcon(genre) {
+  const icons = {
+    Thriller: 'fa-eye', Action: 'fa-bolt', Drama: 'fa-masks-theater',
+    Comedy: 'fa-face-laugh', 'Sci-Fi': 'fa-rocket', Horror: 'fa-ghost',
+    Adventure: 'fa-map', Romance: 'fa-heart',
+  };
+  return icons[genre] || 'fa-film';
+}
+
+function allMovies() {
+  return Object.values(MOVIES).flat();
+}
+
+function findById(id) {
+  return allMovies().find(m => m.id === id);
+}
+
+function saveList() {
+  localStorage.setItem('fbMyList', JSON.stringify(myList));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('fbToast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2600);
+}
+
+function toggleWatchlist(id, btn) {
+  const idx = myList.indexOf(id);
+  if (idx === -1) {
+    myList.push(id);
+    const m = findById(id);
+    showToast(`"${m.title}" added to My List`);
+    btn && btn.classList.add('added');
+    btn && (btn.innerHTML = '<i class="fa-solid fa-check"></i>');
+  } else {
+    myList.splice(idx, 1);
+    const m = findById(id);
+    showToast(`"${m.title}" removed from My List`);
+    btn && btn.classList.remove('added');
+    btn && (btn.innerHTML = '<i class="fa-solid fa-plus"></i>');
+  }
+  saveList();
+}
+
+// ── Card Builder ─────────────────────────────────────────
+function buildCard(movie) {
+  const inList = myList.includes(movie.id);
+  const card = document.createElement('div');
+  card.className = 'fb-card';
+  card.dataset.id = movie.id;
+
+  card.innerHTML = `
+    <div class="fb-card__poster-placeholder" style="background:${posterGradient(movie.hue)}">
+      <i class="fa-solid ${posterIcon(movie.genre)}" style="font-size:2rem;opacity:.6;color:#fff"></i>
+      <span style="color:rgba(255,255,255,.75);font-size:.72rem;line-height:1.3">${movie.title}</span>
+    </div>
+    <span class="fb-card__genre-tag">${movie.genre}</span>
+    <button class="fb-card__watchlist-btn${inList ? ' added' : ''}" title="${inList ? 'Remove from' : 'Add to'} My List" data-id="${movie.id}">
+      <i class="fa-solid ${inList ? 'fa-check' : 'fa-plus'}"></i>
+    </button>
+    <div class="fb-card__overlay">
+      <div class="fb-card__play"><i class="fa-solid fa-play" style="margin-left:2px"></i></div>
+      <div class="fb-card__title">${movie.title}</div>
+      <div class="fb-card__info">
+        <span class="rating"><i class="fa-solid fa-star"></i> ${movie.rating}</span>
+        <span>${movie.year}</span>
+        <span>${movie.dur}</span>
+      </div>
+    </div>
+  `;
+
+  card.querySelector('.fb-card__watchlist-btn').addEventListener('click', e => {
+    e.stopPropagation();
+    toggleWatchlist(movie.id, e.currentTarget);
+  });
+
+  card.addEventListener('click', () => openModal(movie.id));
+  return card;
+}
+
+// ── Render Rows ──────────────────────────────────────────
+function renderRow(trackId, movies) {
+  const track = document.getElementById(trackId);
+  if (!track) return;
+  movies.forEach(m => track.appendChild(buildCard(m)));
+}
+
+function initRows() {
+  renderRow('rowTrending', MOVIES.trending);
+  renderRow('rowNew',      MOVIES.newReleases);
+  renderRow('rowAction',   MOVIES.action);
+  renderRow('rowComedy',   MOVIES.comedy);
+  renderRow('rowScifi',    MOVIES.scifi);
+  renderRow('rowDrama',    MOVIES.drama);
+}
+
+// ── Row Scrolling ────────────────────────────────────────
+function initRowArrows() {
+  document.querySelectorAll('.fb-row__track-wrap').forEach(wrap => {
+    const track = wrap.querySelector('.fb-row__track');
+    wrap.querySelector('.fb-row__arrow--left').addEventListener('click', () => {
+      track.scrollBy({ left: -600, behavior: 'smooth' });
+    });
+    wrap.querySelector('.fb-row__arrow--right').addEventListener('click', () => {
+      track.scrollBy({ left: 600, behavior: 'smooth' });
+    });
+  });
+}
+
+// ── Hero ─────────────────────────────────────────────────
+function initHero() {
+  const featured = MOVIES.trending[0];
+  const bg = document.getElementById('heroBg');
+  bg.style.background = posterGradient(featured.hue);
+  bg.style.backgroundSize = 'cover';
+
+  document.getElementById('heroMoreInfo').addEventListener('click', () => {
+    openModal(featured.id);
+  });
+}
+
+// ── Modal ────────────────────────────────────────────────
+function openModal(id) {
+  const m = findById(id);
+  if (!m) return;
+
+  document.getElementById('modalTitle').textContent = m.title;
+  document.getElementById('modalDesc').textContent = m.desc;
+  document.getElementById('modalHero').style.background = posterGradient(m.hue);
+
+  const inList = myList.includes(m.id);
+  const addBtn = document.getElementById('modalAddList');
+  addBtn.innerHTML = `<i class="fa-solid ${inList ? 'fa-check' : 'fa-plus'}"></i>`;
+  addBtn.title = inList ? 'Remove from My List' : 'Add to My List';
+  addBtn.onclick = () => {
+    toggleWatchlist(m.id, null);
+    const nowIn = myList.includes(m.id);
+    addBtn.innerHTML = `<i class="fa-solid ${nowIn ? 'fa-check' : 'fa-plus'}"></i>`;
+    addBtn.title = nowIn ? 'Remove from My List' : 'Add to My List';
+  };
+
+  document.getElementById('modalMeta').innerHTML = `
+    <span style="color:#f59e0b;font-weight:700"><i class="fa-solid fa-star"></i> ${m.rating}</span>
+    <span>${m.year}</span>
+    <span style="background:rgba(139,92,246,.25);border:1px solid rgba(139,92,246,.4);color:#c4b5fd;padding:2px 10px;border-radius:99px;font-size:.78rem">${m.genre}</span>
+    <span>${m.dur}</span>
+  `;
+
+  document.getElementById('modalTags').innerHTML = [m.genre, m.year, m.dur]
+    .map(t => `<span class="fb-modal__tag">${t}</span>`).join('');
+
+  document.getElementById('fbModal').classList.add('open');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeModal() {
+  document.getElementById('fbModal').classList.remove('open');
+  document.body.style.overflow = '';
+}
+
+function initModal() {
+  document.getElementById('modalClose').addEventListener('click', closeModal);
+  document.getElementById('modalBackdrop').addEventListener('click', closeModal);
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+}
+
+// ── Search ───────────────────────────────────────────────
+function initSearch() {
+  const toggle    = document.getElementById('searchToggle');
+  const input     = document.getElementById('searchInput');
+  const overlay   = document.getElementById('searchOverlay');
+  const grid      = document.getElementById('searchResults');
+  const noResults = document.getElementById('noResults');
+  const closeBtn  = document.getElementById('closeSearch');
+
+  toggle.addEventListener('click', () => {
+    input.classList.toggle('open');
+    if (input.classList.contains('open')) input.focus();
+    else { closeSearchOverlay(); input.value = ''; }
+  });
+
+  input.addEventListener('input', () => {
+    const q = input.value.trim().toLowerCase();
+    if (!q) { closeSearchOverlay(); return; }
+    const hits = allMovies().filter(m =>
+      m.title.toLowerCase().includes(q) ||
+      m.genre.toLowerCase().includes(q) ||
+      String(m.year).includes(q)
+    );
+    grid.innerHTML = '';
+    overlay.classList.add('open');
+    noResults.classList.toggle('visible', hits.length === 0);
+    hits.forEach(m => grid.appendChild(buildCard(m)));
+  });
+
+  closeBtn.addEventListener('click', () => {
+    closeSearchOverlay();
+    input.classList.remove('open');
+    input.value = '';
+  });
+
+  function closeSearchOverlay() {
+    overlay.classList.remove('open');
+  }
+}
+
+// ── Navbar scroll effect ─────────────────────────────────
+function initNavScroll() {
+  const nav = document.getElementById('fbNav');
+  const onScroll = () => {
+    nav.classList.toggle('scrolled', window.scrollY > 60);
+  };
+  window.addEventListener('scroll', onScroll, { passive: true });
+  onScroll();
+}
+
+// ── My List nav link ─────────────────────────────────────
+function initMyListLink() {
+  document.getElementById('myListLink').addEventListener('click', e => {
+    e.preventDefault();
+    if (myList.length === 0) { showToast('Your list is empty — add some movies!'); return; }
+    const grid = document.getElementById('searchResults');
+    const overlay = document.getElementById('searchOverlay');
+    const noResults = document.getElementById('noResults');
+    grid.innerHTML = '';
+    overlay.classList.add('open');
+    noResults.classList.remove('visible');
+    myList.map(findById).filter(Boolean).forEach(m => grid.appendChild(buildCard(m)));
+    document.querySelector('.fb-search-overlay__header span').textContent = 'My List';
+  });
+}
+
+// ── Boot ─────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', () => {
+  initHero();
+  initRows();
+  initRowArrows();
+  initModal();
+  initSearch();
+  initNavScroll();
+  initMyListLink();
+});
