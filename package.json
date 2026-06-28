@@ -7,6 +7,7 @@
     "start": "node server.js",
     "dev": "npx nodemon server.js"
   },
+  "engines": { "node": ">=20" },
   "dependencies": {
     "@fortawesome/fontawesome-free": "^6.5.2",
     "axios": "^1.7.2",
