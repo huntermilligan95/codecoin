@@ -158,6 +158,12 @@ async function fetchPage(url) {
   return data;
 }
 
+// ── Health check (used by Railway) ───────────────────────
+app.get('/health', (_, res) => res.json({ ok: true }));
+
+// ── Root → FlixBaba ──────────────────────────────────────
+app.get('/', (_, res) => res.redirect('/flixbaba.html'));
+
 // ── Serve static frontend files ──────────────────────────
 app.use(express.static(path.join(__dirname)));
 
