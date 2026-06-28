@@ -507,7 +507,7 @@ button {
   position: absolute;
   inset: 0;
   background: linear-gradient(to top, rgba(15,15,26,0.95) 0%, transparent 55%);
-  opacity: 0;
+  opacity: 0.85;
   transition: opacity var(--transition);
   display: flex;
   flex-direction: column;
