@@ -814,6 +814,102 @@ button {
   transform: translateX(-50%) translateY(0);
 }
 
+/* ── Proxy Player ───────────────────────────────────────── */
+.fb-player {
+  display: none;
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  flex-direction: column;
+  background: #000;
+}
+.fb-player.open { display: flex; }
+
+.fb-player__bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  height: 52px;
+  background: rgba(15,15,26,0.95);
+  border-bottom: 1px solid var(--border);
+  flex-shrink: 0;
+  gap: 12px;
+}
+
+.fb-player__bar-title {
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text);
+  flex: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fb-player__bar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.fb-player__ext-btn {
+  color: var(--muted);
+  font-size: 0.9rem;
+  padding: 6px 10px;
+  border-radius: 6px;
+  transition: color var(--transition), background var(--transition);
+}
+.fb-player__ext-btn:hover { color: var(--accent); background: rgba(139,92,246,0.1); }
+
+.fb-player__bar button {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.08);
+  color: var(--text);
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--border);
+  transition: background var(--transition);
+}
+.fb-player__bar button:hover { background: rgba(255,255,255,0.18); }
+
+.fb-player__loading {
+  position: absolute;
+  inset: 52px 0 0 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--muted);
+  font-size: 0.9rem;
+  z-index: 1;
+  background: #000;
+}
+
+.fb-player__spinner {
+  width: 40px;
+  height: 40px;
+  border: 3px solid rgba(139,92,246,0.2);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+.fb-player__frame {
+  flex: 1;
+  width: 100%;
+  border: none;
+  position: relative;
+  z-index: 2;
+}
+
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 900px) {
   .fb-nav { padding: 0 20px; gap: 16px; }

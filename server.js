@@ -205,6 +205,82 @@ app.get('/api/search', async (req, res) => {
   res.json({ ok: true, count: 0, titles: [], note: 'Search returned no results or site structure not recognized.' });
 });
 
+// ── Proxy: fetch any flixbaba.mov page, strip ads, rewrite URLs ──
+// This lets the frontend load movie pages inside an iframe without
+// ever sending the user to the external site.
+app.get('/proxy', async (req, res) => {
+  const { url } = req.query;
+  if (!url) return res.status(400).send('Missing url param');
+
+  let parsed;
+  try { parsed = new URL(url); } catch { return res.status(400).send('Invalid URL'); }
+
+  if (!parsed.hostname.endsWith('flixbaba.mov')) {
+    return res.status(403).send('Domain not allowed');
+  }
+
+  try {
+    const html = await fetchPage(url);
+    const $    = cheerio.load(html);
+
+    stripAds($);
+
+    // Rewrite internal links to go through this proxy
+    $('a[href]').each((_, el) => {
+      const href   = $(el).attr('href') || '';
+      const target = abs(href);
+      if (target.includes('flixbaba.mov')) {
+        $(el).attr('href', `/proxy?url=${encodeURIComponent(target)}`);
+      } else if (href.startsWith('#') || href.startsWith('javascript')) {
+        // leave as-is
+      } else {
+        $(el).attr('href', target);
+      }
+    });
+
+    // Proxy poster/banner images
+    $('img').each((_, el) => {
+      const src = $(el).attr('src') || $(el).attr('data-src') || '';
+      if (src && !src.startsWith('data:')) {
+        const target = abs(src);
+        if (target.includes('flixbaba.mov')) {
+          $(el).attr('src', `/api/image?url=${encodeURIComponent(target)}`);
+          $(el).removeAttr('data-src');
+        }
+      }
+    });
+
+    // Remove scripts from other domains (leave flixbaba's own scripts)
+    $('script[src]').each((_, el) => {
+      const src = $(el).attr('src') || '';
+      const isRelative = src.startsWith('/') || !src.startsWith('http');
+      const isOwn      = src.includes('flixbaba.mov');
+      if (!isRelative && !isOwn) $(el).remove();
+    });
+
+    // Inject base so relative resources resolve correctly
+    if ($('base').length === 0) $('head').prepend(`<base href="${ORIGIN}/">`);
+
+    // Inject a small style override to hide any remaining ad placeholders
+    $('head').append(`<style>
+      [id*="ad"],[class*="adv"],[class*="popup"],[class*="overlay"]{display:none!important}
+      body{margin:0}
+    </style>`);
+
+    // Strip security headers so the page can load inside our iframe
+    res.removeHeader('X-Frame-Options');
+    res.removeHeader('Content-Security-Policy');
+    res.set('Content-Type', 'text/html; charset=utf-8');
+    res.set('X-Frame-Options', 'SAMEORIGIN');
+    res.send($.html());
+  } catch (err) {
+    res.status(502).send(`<html><body style="background:#0f0f1a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;gap:16px">
+      <h2>Could not load page</h2><p style="color:#9090b0">${err.message}</p>
+      <a href="${url}" target="_blank" style="color:#8b5cf6">Open on FlixBaba directly</a>
+    </body></html>`);
+  }
+});
+
 // ── Start ────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\nFlixBaba mirror running at http://localhost:${PORT}`);

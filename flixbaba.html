@@ -228,6 +228,25 @@
   <!-- My List Toast -->
   <div class="fb-toast" id="fbToast"></div>
 
+  <!-- Proxy Player Overlay -->
+  <div class="fb-player" id="fbPlayer">
+    <div class="fb-player__bar">
+      <span class="fb-player__bar-title" id="playerTitle"></span>
+      <div class="fb-player__bar-actions">
+        <a id="playerExternal" href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-player__ext-btn" title="Open on FlixBaba">
+          <i class="fa-solid fa-arrow-up-right-from-square"></i>
+        </a>
+        <button id="closePlayer" title="Close player"><i class="fa-solid fa-xmark"></i></button>
+      </div>
+    </div>
+    <div class="fb-player__loading" id="playerLoading">
+      <div class="fb-player__spinner"></div>
+      <p>Loading from FlixBaba…</p>
+    </div>
+    <iframe class="fb-player__frame" id="playerFrame" src="" allowfullscreen
+      sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-presentation"></iframe>
+  </div>
+
   <script src="./assets/js/flixbaba.js"></script>
 </body>
 </html>
