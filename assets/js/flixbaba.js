@@ -189,6 +189,10 @@ function initHero() {
   bg.style.backgroundSize = 'cover';
   bg.style.backgroundPosition = 'center';
 
+  document.getElementById('heroWatch').addEventListener('click', () => {
+    openPlayer(featured.title, `https://flixbaba.mov/search?q=${encodeURIComponent(featured.title)}`);
+  });
+
   document.getElementById('heroMoreInfo').addEventListener('click', () => {
     openModal(featured.id);
   });
