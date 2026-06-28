@@ -115,13 +115,16 @@ function toggleWatchlist(id, btn) {
 
 // ── Card Builder ─────────────────────────────────────────
 function buildCard(movie) {
-  const inList = myList.includes(movie.id);
+  const inList    = myList.includes(movie.id);
+  const posterUrl = `https://picsum.photos/seed/fb${movie.id}/300/450`;
   const card = document.createElement('div');
   card.className = 'fb-card';
   card.dataset.id = movie.id;
 
   card.innerHTML = `
-    <div class="fb-card__poster-placeholder" style="background:${posterGradient(movie.hue)}">
+    <img class="fb-card__poster" src="${posterUrl}" alt="${movie.title}" loading="lazy"
+      onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
+    <div class="fb-card__poster-placeholder" style="background:${posterGradient(movie.hue)};display:none">
       <i class="fa-solid ${posterIcon(movie.genre)}" style="font-size:2rem;opacity:.6;color:#fff"></i>
       <span style="color:rgba(255,255,255,.75);font-size:.72rem;line-height:1.3">${movie.title}</span>
     </div>
@@ -182,8 +185,9 @@ function initRowArrows() {
 function initHero() {
   const featured = MOVIES.trending[0];
   const bg = document.getElementById('heroBg');
-  bg.style.background = posterGradient(featured.hue);
+  bg.style.backgroundImage = `url(https://picsum.photos/seed/fb${featured.id}hero/1600/900)`;
   bg.style.backgroundSize = 'cover';
+  bg.style.backgroundPosition = 'center';
 
   document.getElementById('heroMoreInfo').addEventListener('click', () => {
     openModal(featured.id);
@@ -232,7 +236,10 @@ function openModal(id) {
 
   document.getElementById('modalTitle').textContent = m.title;
   document.getElementById('modalDesc').textContent = m.desc;
-  document.getElementById('modalHero').style.background = posterGradient(m.hue);
+  const modalHero = document.getElementById('modalHero');
+  modalHero.style.backgroundImage = `url(https://picsum.photos/seed/fb${m.id}hero/800/450)`;
+  modalHero.style.backgroundSize = 'cover';
+  modalHero.style.backgroundPosition = 'center';
 
   const inList = myList.includes(m.id);
   const addBtn = document.getElementById('modalAddList');
