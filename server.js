@@ -165,6 +165,11 @@ app.get('/health', (_, res) => res.json({ ok: true }));
 app.get('/', (_, res) => res.redirect('/flixbaba.html'));
 
 // ── Serve static frontend files ──────────────────────────
+// HTML files: no-store so browsers always fetch the latest version
+app.get('*.html', (req, res, next) => {
+  res.set('Cache-Control', 'no-store');
+  next();
+});
 app.use(express.static(path.join(__dirname)));
 
 // ── Serve Font Awesome from local node_modules ───────────
