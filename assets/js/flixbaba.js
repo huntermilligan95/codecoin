@@ -293,6 +293,11 @@ function initSearch() {
   const grid      = document.getElementById('searchResults');
   const noResults = document.getElementById('noResults');
   const closeBtn  = document.getElementById('closeSearch');
+  const header    = document.querySelector('.fb-search-overlay__header span');
+
+  let debounceTimer = null;
+  let lastQuery     = '';
+  let activeCtrl    = null;  // AbortController for in-flight request
 
   toggle.addEventListener('click', () => {
     input.classList.toggle('open');
@@ -301,23 +306,69 @@ function initSearch() {
   });
 
   input.addEventListener('input', () => {
-    const q = input.value.trim().toLowerCase();
-    if (!q) { closeSearchOverlay(); return; }
+    const q = input.value.trim();
+    if (!q) { closeSearchOverlay(); lastQuery = ''; return; }
+    clearTimeout(debounceTimer);
+    debounceTimer = setTimeout(() => performSearch(q), 450);
+  });
+
+  async function performSearch(q) {
+    if (q === lastQuery) return;
+    lastQuery = q;
+
+    // Cancel any previous in-flight request
+    if (activeCtrl) activeCtrl.abort();
+    activeCtrl = new AbortController();
+
+    header.textContent = `Searching FlixBaba for "${q}"…`;
+    overlay.classList.add('open');
+    noResults.classList.remove('visible');
+    grid.innerHTML = `
+      <div class="fb-search-loading">
+        <div class="fb-player__spinner"></div>
+        <span>Searching FlixBaba catalog…</span>
+      </div>`;
+
+    try {
+      const res  = await fetch(`/api/search?q=${encodeURIComponent(q)}`, {
+        signal: activeCtrl.signal,
+      });
+      const data = await res.json();
+      grid.innerHTML = '';
+
+      if (data.ok && data.titles && data.titles.length > 0) {
+        header.textContent = `${data.titles.length} result${data.titles.length !== 1 ? 's' : ''} for "${q}" on FlixBaba`;
+        data.titles.forEach((t, i) => grid.appendChild(buildLiveCard(apiToMovie(t, i))));
+      } else {
+        // Fall back to local hardcoded catalog
+        localSearch(q);
+      }
+    } catch (err) {
+      if (err.name === 'AbortError') return;
+      // Network/server error — fall back to local catalog
+      grid.innerHTML = '';
+      localSearch(q);
+    }
+  }
+
+  function localSearch(q) {
     const hits = allMovies().filter(m =>
-      m.title.toLowerCase().includes(q) ||
-      m.genre.toLowerCase().includes(q) ||
+      m.title.toLowerCase().includes(q.toLowerCase()) ||
+      m.genre.toLowerCase().includes(q.toLowerCase()) ||
       String(m.year).includes(q)
     );
-    grid.innerHTML = '';
-    overlay.classList.add('open');
+    header.textContent = hits.length
+      ? `${hits.length} local result${hits.length !== 1 ? 's' : ''} for "${q}"`
+      : `No results for "${q}"`;
     noResults.classList.toggle('visible', hits.length === 0);
     hits.forEach(m => grid.appendChild(buildCard(m)));
-  });
+  }
 
   closeBtn.addEventListener('click', () => {
     closeSearchOverlay();
     input.classList.remove('open');
     input.value = '';
+    lastQuery = '';
   });
 
   function closeSearchOverlay() {
