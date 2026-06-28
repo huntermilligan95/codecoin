@@ -1,13 +1,43 @@
 'use strict';
 
+require('dotenv').config();
+
 const express = require('express');
 const axios   = require('axios');
 const cheerio = require('cheerio');
 const path    = require('path');
 
-const app    = express();
-const PORT   = process.env.PORT || 3000;
-const ORIGIN = 'https://flixbaba.mov';
+const app      = express();
+const PORT     = process.env.PORT || 3000;
+const ORIGIN   = 'https://flixbaba.mov';
+const TMDB_KEY = process.env.TMDB_API_KEY;
+const TMDB     = 'https://api.themoviedb.org/3';
+const IMG      = 'https://image.tmdb.org/t/p/w342';
+
+// ── TMDB helper ──────────────────────────────────────────
+async function tmdb(endpoint, params = {}) {
+  const url = new URL(`${TMDB}${endpoint}`);
+  url.searchParams.set('api_key', TMDB_KEY);
+  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, v));
+  const { data } = await axios.get(url.toString(), { timeout: 10000 });
+  return data;
+}
+
+// Map a TMDB result to our standard title object
+function mapItem(item) {
+  const isTV  = item.media_type === 'tv' || (!item.title && item.name);
+  const title = item.title || item.name || '';
+  const year  = (item.release_date || item.first_air_date || '').slice(0, 4);
+  return {
+    title,
+    year,
+    rating: item.vote_average ? item.vote_average.toFixed(1) : '',
+    poster: item.poster_path  ? `${IMG}${item.poster_path}` : '',
+    genre:  isTV ? 'TV Show' : 'Movie',
+    desc:   item.overview || '',
+    link:   `${ORIGIN}/search?q=${encodeURIComponent(title)}`,
+  };
+}
 
 // ── Known ad/tracker script domains ─────────────────────
 const AD_PATTERNS = [
@@ -136,26 +166,55 @@ app.use('/fontawesome', express.static(
   path.join(__dirname, 'node_modules/@fortawesome/fontawesome-free')
 ));
 
-// ── API: scrape & return titles ──────────────────────────
-// GET /api/titles?path=/movies  (path defaults to homepage)
+// ── API: TMDB-powered browse categories ──────────────────
 app.get('/api/titles', async (req, res) => {
-  const subpath = (req.query.path || '').replace(/^\/+/, '');
-  const url     = subpath ? `${ORIGIN}/${subpath}` : ORIGIN;
+  if (!TMDB_KEY) return res.json({ ok: false, error: 'TMDB_API_KEY not configured', categories: {} });
 
   try {
-    const html = await fetchPage(url);
-    const $    = cheerio.load(html);
-    stripAds($);
-    const titles = extractTitles($);
-    res.json({ ok: true, source: url, count: titles.length, titles });
+    const [trending, newReleases, action, comedy, scifi, drama] = await Promise.all([
+      tmdb('/trending/all/week'),
+      tmdb('/movie/now_playing'),
+      tmdb('/discover/movie', { with_genres: 28,  sort_by: 'popularity.desc' }),
+      tmdb('/discover/movie', { with_genres: 35,  sort_by: 'popularity.desc' }),
+      tmdb('/discover/movie', { with_genres: 878, sort_by: 'popularity.desc' }),
+      tmdb('/discover/movie', { with_genres: 18,  sort_by: 'popularity.desc' }),
+    ]);
+
+    res.json({
+      ok: true,
+      categories: {
+        trending:    (trending.results    || []).slice(0, 20).map(mapItem),
+        newReleases: (newReleases.results || []).slice(0, 20).map(mapItem),
+        action:      (action.results      || []).slice(0, 20).map(mapItem),
+        comedy:      (comedy.results      || []).slice(0, 20).map(mapItem),
+        scifi:       (scifi.results       || []).slice(0, 20).map(mapItem),
+        drama:       (drama.results       || []).slice(0, 20).map(mapItem),
+      },
+    });
   } catch (err) {
-    const status = err.response?.status || 502;
-    res.status(status).json({ ok: false, error: err.message, hint: err.code === 'ENOTFOUND' ? 'Could not reach flixbaba.mov — check your connection.' : null });
+    res.status(502).json({ ok: false, error: err.message });
   }
 });
 
-// ── API: proxy images from the source domain only ────────
-// Prevents CORS issues when loading posters from flixbaba.mov
+// ── API: TMDB-powered search ──────────────────────────────
+app.get('/api/search', async (req, res) => {
+  if (!TMDB_KEY) return res.json({ ok: false, error: 'TMDB_API_KEY not configured', titles: [] });
+
+  const q = (req.query.q || '').trim();
+  if (!q) return res.status(400).json({ error: 'Missing q param' });
+
+  try {
+    const data   = await tmdb('/search/multi', { query: q, include_adult: false, page: 1 });
+    const titles = (data.results || [])
+      .filter(r => r.media_type !== 'person' && (r.title || r.name))
+      .map(mapItem);
+    res.json({ ok: true, count: titles.length, titles });
+  } catch (err) {
+    res.status(502).json({ ok: false, error: err.message, titles: [] });
+  }
+});
+
+// ── API: proxy images (flixbaba.mov + TMDB) ──────────────
 app.get('/api/image', async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).json({ error: 'Missing url param' });
@@ -163,10 +222,9 @@ app.get('/api/image', async (req, res) => {
   let parsed;
   try { parsed = new URL(url); } catch { return res.status(400).json({ error: 'Invalid URL' }); }
 
-  // Restrict to the source domain only (SSRF guard)
-  if (!parsed.hostname.endsWith('flixbaba.mov')) {
-    return res.status(403).json({ error: 'Domain not allowed' });
-  }
+  const allowed = parsed.hostname.endsWith('flixbaba.mov') ||
+                  parsed.hostname.endsWith('image.tmdb.org');
+  if (!allowed) return res.status(403).json({ error: 'Domain not allowed' });
 
   try {
     const upstream = await axios.get(url, { responseType: 'stream', timeout: 10000 });
@@ -177,32 +235,6 @@ app.get('/api/image', async (req, res) => {
   } catch (err) {
     res.status(502).json({ error: err.message });
   }
-});
-
-// ── API: search titles ───────────────────────────────────
-// Proxies to the site's own search if it has one
-app.get('/api/search', async (req, res) => {
-  const q = (req.query.q || '').trim();
-  if (!q) return res.status(400).json({ error: 'Missing q param' });
-
-  // Common search URL patterns for streaming sites — adjust if needed
-  const searchUrls = [
-    `${ORIGIN}/?s=${encodeURIComponent(q)}`,
-    `${ORIGIN}/search/${encodeURIComponent(q)}`,
-    `${ORIGIN}/search?q=${encodeURIComponent(q)}`,
-  ];
-
-  for (const url of searchUrls) {
-    try {
-      const html   = await fetchPage(url);
-      const $      = cheerio.load(html);
-      stripAds($);
-      const titles = extractTitles($);
-      if (titles.length > 0) return res.json({ ok: true, source: url, count: titles.length, titles });
-    } catch (_) { continue; }
-  }
-
-  res.json({ ok: true, count: 0, titles: [], note: 'Search returned no results or site structure not recognized.' });
 });
 
 // ── Proxy: fetch any flixbaba.mov page, strip ads, rewrite URLs ──

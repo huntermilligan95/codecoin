@@ -539,14 +539,34 @@ function insertLiveRow(titles) {
 
 async function fetchLiveTitles() {
   try {
-    const res  = await fetch('/api/titles', { signal: AbortSignal.timeout(14000) });
+    const res  = await fetch('/api/titles', { signal: AbortSignal.timeout(20000) });
     if (!res.ok) throw new Error(`Server responded ${res.status}`);
     const data = await res.json();
-    if (data.ok && data.titles && data.titles.length > 0) {
-      insertLiveRow(data.titles);
+    if (!data.ok || !data.categories) return;
+
+    const rowMap = {
+      trending:    'rowTrending',
+      newReleases: 'rowNew',
+      action:      'rowAction',
+      comedy:      'rowComedy',
+      scifi:       'rowScifi',
+      drama:       'rowDrama',
+    };
+
+    let total = 0;
+    for (const [key, trackId] of Object.entries(rowMap)) {
+      const titles = data.categories[key] || [];
+      if (!titles.length) continue;
+      const track = document.getElementById(trackId);
+      if (!track) continue;
+      track.innerHTML = '';
+      titles.forEach((t, i) => track.appendChild(buildLiveCard(apiToMovie(t, i))));
+      total += titles.length;
     }
+
+    if (total > 0) showToast(`${total} titles loaded from TMDB`);
   } catch (_) {
-    // Server not running — silently fall back to hardcoded data; no user-facing error.
+    // Server offline or key not set — keep hardcoded data silently.
   }
 }
 
