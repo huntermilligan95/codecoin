@@ -205,9 +205,11 @@ function embedUrl(mediaType, tmdbId, server) {
   const type = mediaType === 'tv' ? 'tv' : 'movie';
   switch (server) {
     case 1: return `https://vidsrc.to/embed/${type}/${tmdbId}`;
-    case 2: return `https://vidsrc.me/embed/${type}?tmdb=${tmdbId}`;
-    case 3: return `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1`;
-    default: return `https://vidsrc.me/embed/${type}?tmdb=${tmdbId}`;
+    case 2: return `https://embed.su/embed/${type}/${tmdbId}`;
+    case 3: return `https://vidlink.pro/${type}/${tmdbId}`;
+    case 4: return `https://www.2embed.cc/embed/${tmdbId}`;
+    case 5: return `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1`;
+    default: return `https://embed.su/embed/${type}/${tmdbId}`;
   }
 }
 
@@ -228,7 +230,7 @@ function openPlayer(title, tmdbId, mediaType) {
   const player  = document.getElementById('fbPlayer');
   const extLink = document.getElementById('playerExternal');
   document.getElementById('playerTitle').textContent = title;
-  extLink.href = `https://vidsrc.me/embed/${mediaType}?tmdb=${tmdbId}`;
+  extLink.href = `https://embed.su/embed/${mediaType}/${tmdbId}`;
   _playerCtx = { tmdbId, mediaType };
   player.classList.add('open');
   document.body.style.overflow = 'hidden';
