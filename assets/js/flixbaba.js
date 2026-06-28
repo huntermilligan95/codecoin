@@ -343,8 +343,10 @@ function initSearch() {
       if (data.ok && data.titles && data.titles.length > 0) {
         header.textContent = `${data.titles.length} result${data.titles.length !== 1 ? 's' : ''} for "${q}" on FlixBaba`;
         data.titles.forEach((t, i) => grid.appendChild(buildLiveCard(apiToMovie(t, i))));
+      } else if (!data.ok && data.error && data.error.includes('TMDB_API_KEY')) {
+        header.textContent = `Search unavailable — TMDB_API_KEY not set on server`;
+        noResults.classList.add('visible');
       } else {
-        // Fall back to local hardcoded catalog
         localSearch(q);
       }
     } catch (err) {
