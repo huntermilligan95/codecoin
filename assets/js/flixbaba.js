@@ -190,7 +190,7 @@ function initHero() {
   bg.style.backgroundPosition = 'center';
 
   document.getElementById('heroWatch').addEventListener('click', () => {
-    openPlayer(featured.title, `https://flixbaba.mov/search?q=${encodeURIComponent(featured.title)}`);
+    window.open(`https://flixbaba.mov/search?q=${encodeURIComponent(featured.title)}`, '_blank', 'noopener,noreferrer');
   });
 
   document.getElementById('heroMoreInfo').addEventListener('click', () => {
@@ -266,12 +266,11 @@ function openModal(id) {
   document.getElementById('modalTags').innerHTML = [m.genre, m.year, m.dur]
     .map(t => `<span class="fb-modal__tag">${t}</span>`).join('');
 
-  // Watch button opens the proxy player, not the external site
   const watchBtn = document.getElementById('modalWatch');
   watchBtn.onclick = (e) => {
     e.preventDefault();
     closeModal();
-    openPlayer(m.title, 'https://flixbaba.mov');
+    window.open(`https://flixbaba.mov/search?q=${encodeURIComponent(m.title)}`, '_blank', 'noopener,noreferrer');
   };
 
   document.getElementById('fbModal').classList.add('open');
@@ -483,12 +482,11 @@ function openLiveModal(movie) {
     <span style="background:rgba(139,92,246,.25);border:1px solid rgba(139,92,246,.4);color:#c4b5fd;padding:2px 10px;border-radius:99px;font-size:.78rem">${movie.genre}</span>
   `;
 
-  // Watch button opens proxy player with the movie's actual link
   const watchBtn = document.getElementById('modalWatch');
   watchBtn.onclick = (e) => {
     e.preventDefault();
     closeModal();
-    openPlayer(movie.title, movie.link || 'https://flixbaba.mov');
+    window.open(movie.link || 'https://flixbaba.mov', '_blank', 'noopener,noreferrer');
   };
 
   document.getElementById('modalAddList').onclick = () => showToast(`"${movie.title}" saved!`);
