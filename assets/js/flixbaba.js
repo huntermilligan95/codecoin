@@ -198,24 +198,41 @@ function initHero() {
   });
 }
 
-// ── Proxy Player ─────────────────────────────────────────
-function openPlayer(title, targetUrl) {
-  const player  = document.getElementById('fbPlayer');
+// ── Player / Server Picker ───────────────────────────────
+let _playerCtx = null;  // { tmdbId, mediaType } for server-switch
+
+function embedUrl(mediaType, tmdbId, server) {
+  const type = mediaType === 'tv' ? 'tv' : 'movie';
+  switch (server) {
+    case 1: return `https://vidsrc.to/embed/${type}/${tmdbId}`;
+    case 2: return `https://vidsrc.me/embed/${type}?tmdb=${tmdbId}`;
+    case 3: return `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1`;
+    default: return `https://vidsrc.me/embed/${type}?tmdb=${tmdbId}`;
+  }
+}
+
+function loadServer(n) {
+  if (!_playerCtx) return;
   const frame   = document.getElementById('playerFrame');
   const loading = document.getElementById('playerLoading');
-  const extLink = document.getElementById('playerExternal');
-
-  document.getElementById('playerTitle').textContent = title;
-  extLink.href = targetUrl;
-
+  document.querySelectorAll('.fb-player__srv').forEach(b => {
+    b.classList.toggle('fb-player__srv--active', +b.dataset.srv === n);
+  });
   loading.style.display = 'flex';
   frame.src = '';
+  frame.onload = () => { loading.style.display = 'none'; };
+  frame.src = embedUrl(_playerCtx.mediaType, _playerCtx.tmdbId, n);
+}
 
+function openPlayer(title, tmdbId, mediaType) {
+  const player  = document.getElementById('fbPlayer');
+  const extLink = document.getElementById('playerExternal');
+  document.getElementById('playerTitle').textContent = title;
+  extLink.href = `https://vidsrc.me/embed/${mediaType}?tmdb=${tmdbId}`;
+  _playerCtx = { tmdbId, mediaType };
   player.classList.add('open');
   document.body.style.overflow = 'hidden';
-
-  frame.onload = () => { loading.style.display = 'none'; };
-  frame.src = targetUrl;
+  loadServer(2);
 }
 
 function closePlayer() {
@@ -224,11 +241,15 @@ function closePlayer() {
   player.classList.remove('open');
   frame.src = '';
   document.body.style.overflow = '';
+  _playerCtx = null;
 }
 
 function initPlayer() {
   document.getElementById('closePlayer').addEventListener('click', closePlayer);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(); });
+  document.querySelectorAll('.fb-player__srv').forEach(btn => {
+    btn.addEventListener('click', () => loadServer(+btn.dataset.srv));
+  });
 }
 
 // ── Modal ────────────────────────────────────────────────
@@ -487,7 +508,7 @@ function openLiveModal(movie) {
     e.preventDefault();
     closeModal();
     if (movie.tmdbId) {
-      openPlayer(movie.title, `https://vidsrc.to/embed/${movie.mediaType}/${movie.tmdbId}`);
+      openPlayer(movie.title, movie.tmdbId, movie.mediaType);
     } else {
       showToast('Streaming not available for this title');
     }

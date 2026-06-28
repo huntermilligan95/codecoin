@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FlixBaba - Stream Unlimited Movies & Shows</title>
-  <link rel="stylesheet" href="./assets/css/flixbaba.css?v=3">
+  <link rel="stylesheet" href="./assets/css/flixbaba.css?v=4">
   <link rel="stylesheet" href="/fontawesome/css/all.min.css">
 </head>
 <body>
@@ -232,6 +232,12 @@
   <div class="fb-player" id="fbPlayer">
     <div class="fb-player__bar">
       <span class="fb-player__bar-title" id="playerTitle"></span>
+      <div class="fb-player__servers" id="playerServers">
+        <span class="fb-player__srv-label">Server</span>
+        <button class="fb-player__srv" data-srv="1">1</button>
+        <button class="fb-player__srv fb-player__srv--active" data-srv="2">2</button>
+        <button class="fb-player__srv" data-srv="3">3</button>
+      </div>
       <div class="fb-player__bar-actions">
         <a id="playerExternal" href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-player__ext-btn" title="Open on FlixBaba">
           <i class="fa-solid fa-arrow-up-right-from-square"></i>
@@ -247,6 +253,6 @@
       sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-presentation"></iframe>
   </div>
 
-  <script src="./assets/js/flixbaba.js?v=6"></script>
+  <script src="./assets/js/flixbaba.js?v=7"></script>
 </body>
 </html>
