@@ -131,6 +131,11 @@ async function fetchPage(url) {
 // ── Serve static frontend files ──────────────────────────
 app.use(express.static(path.join(__dirname)));
 
+// ── Serve Font Awesome from local node_modules ───────────
+app.use('/fontawesome', express.static(
+  path.join(__dirname, 'node_modules/@fortawesome/fontawesome-free')
+));
+
 // ── API: scrape & return titles ──────────────────────────
 // GET /api/titles?path=/movies  (path defaults to homepage)
 app.get('/api/titles', async (req, res) => {
