@@ -250,9 +250,7 @@ app.get('/api/image', async (req, res) => {
   }
 });
 
-// ── Proxy: fetch any flixbaba.mov page, strip ads, rewrite URLs ──
-// This lets the frontend load movie pages inside an iframe without
-// ever sending the user to the external site.
+// ── Proxy: fetch flixbaba.mov or vsembed.ru, strip ads, rewrite URLs ──
 app.get('/proxy', async (req, res) => {
   const { url } = req.query;
   if (!url) return res.status(400).send('Missing url param');
@@ -260,9 +258,18 @@ app.get('/proxy', async (req, res) => {
   let parsed;
   try { parsed = new URL(url); } catch { return res.status(400).send('Invalid URL'); }
 
-  if (!parsed.hostname.endsWith('flixbaba.mov')) {
-    return res.status(403).send('Domain not allowed');
-  }
+  const isFlixbaba = parsed.hostname.endsWith('flixbaba.mov');
+  const isVsembed  = parsed.hostname.endsWith('vsembed.ru');
+  if (!isFlixbaba && !isVsembed) return res.status(403).send('Domain not allowed');
+
+  const pageOrigin = `${parsed.protocol}//${parsed.hostname}`;
+  const absFor = (href) => {
+    if (!href) return '';
+    if (href.startsWith('http')) return href;
+    if (href.startsWith('//'))   return 'https:' + href;
+    if (href.startsWith('/'))    return pageOrigin + href;
+    return pageOrigin + '/' + href;
+  };
 
   try {
     const html = await fetchPage(url);
@@ -270,49 +277,80 @@ app.get('/proxy', async (req, res) => {
 
     stripAds($);
 
-    // Rewrite internal links to go through this proxy
-    $('a[href]').each((_, el) => {
-      const href   = $(el).attr('href') || '';
-      const target = abs(href);
-      if (target.includes('flixbaba.mov')) {
-        $(el).attr('href', `/proxy?url=${encodeURIComponent(target)}`);
-      } else if (href.startsWith('#') || href.startsWith('javascript')) {
-        // leave as-is
-      } else {
-        $(el).attr('href', target);
-      }
-    });
-
-    // Proxy poster/banner images
-    $('img').each((_, el) => {
-      const src = $(el).attr('src') || $(el).attr('data-src') || '';
-      if (src && !src.startsWith('data:')) {
-        const target = abs(src);
+    if (isFlixbaba) {
+      // Rewrite internal flixbaba links through proxy
+      $('a[href]').each((_, el) => {
+        const href   = $(el).attr('href') || '';
+        const target = absFor(href);
         if (target.includes('flixbaba.mov')) {
-          $(el).attr('src', `/api/image?url=${encodeURIComponent(target)}`);
-          $(el).removeAttr('data-src');
+          $(el).attr('href', `/proxy?url=${encodeURIComponent(target)}`);
+        } else if (!href.startsWith('#') && !href.startsWith('javascript')) {
+          $(el).attr('href', target);
         }
-      }
-    });
+      });
 
-    // Remove scripts from other domains (leave flixbaba's own scripts)
-    $('script[src]').each((_, el) => {
-      const src = $(el).attr('src') || '';
-      const isRelative = src.startsWith('/') || !src.startsWith('http');
-      const isOwn      = src.includes('flixbaba.mov');
-      if (!isRelative && !isOwn) $(el).remove();
-    });
+      // Proxy poster/banner images
+      $('img').each((_, el) => {
+        const src = $(el).attr('src') || $(el).attr('data-src') || '';
+        if (src && !src.startsWith('data:')) {
+          const target = absFor(src);
+          if (target.includes('flixbaba.mov')) {
+            $(el).attr('src', `/api/image?url=${encodeURIComponent(target)}`);
+            $(el).removeAttr('data-src');
+          }
+        }
+      });
 
-    // Inject base so relative resources resolve correctly
-    if ($('base').length === 0) $('head').prepend(`<base href="${ORIGIN}/">`);
+      // Remove scripts from other domains (leave flixbaba's own scripts)
+      $('script[src]').each((_, el) => {
+        const src = $(el).attr('src') || '';
+        const isRelative = src.startsWith('/') || !src.startsWith('http');
+        const isOwn      = src.includes('flixbaba.mov');
+        if (!isRelative && !isOwn) $(el).remove();
+      });
+    }
 
-    // Inject a small style override to hide any remaining ad placeholders
+    if (isVsembed) {
+      // Rewrite relative script/link srcs to absolute vsembed.ru URLs
+      $('script[src]').each((_, el) => {
+        const src = $(el).attr('src') || '';
+        if (!src.startsWith('http') && !src.startsWith('//')) {
+          $(el).attr('src', absFor(src));
+        }
+      });
+      $('link[href]').each((_, el) => {
+        const href = $(el).attr('href') || '';
+        if (!href.startsWith('http') && !href.startsWith('//') && !href.startsWith('data:')) {
+          $(el).attr('href', absFor(href));
+        }
+      });
+
+      // Auto-click Player #2 once the page initialises
+      $('body').append(`<script>
+        (function() {
+          function clickPlayer2() {
+            var sources = document.querySelectorAll('#sources #list .source');
+            if (sources.length >= 2) { sources[1].click(); return true; }
+            if (sources.length === 1) { sources[0].click(); return true; }
+            return false;
+          }
+          // Try immediately, then retry while the page is still loading
+          var attempts = 0;
+          var interval = setInterval(function() {
+            if (clickPlayer2() || ++attempts > 20) clearInterval(interval);
+          }, 300);
+        })();
+      </script>`);
+    }
+
+    // Inject base so relative resources resolve to the correct origin
+    if ($('base').length === 0) $('head').prepend(`<base href="${pageOrigin}/">`);
+
     $('head').append(`<style>
       [id*="ad"],[class*="adv"],[class*="popup"],[class*="overlay"]{display:none!important}
       body{margin:0}
     </style>`);
 
-    // Strip security headers so the page can load inside our iframe
     res.removeHeader('X-Frame-Options');
     res.removeHeader('Content-Security-Policy');
     res.set('Content-Type', 'text/html; charset=utf-8');
@@ -321,7 +359,7 @@ app.get('/proxy', async (req, res) => {
   } catch (err) {
     res.status(502).send(`<html><body style="background:#0f0f1a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;gap:16px">
       <h2>Could not load page</h2><p style="color:#9090b0">${err.message}</p>
-      <a href="${url}" target="_blank" style="color:#8b5cf6">Open on FlixBaba directly</a>
+      <a href="${url}" target="_blank" style="color:#8b5cf6">Open directly</a>
     </body></html>`);
   }
 });
