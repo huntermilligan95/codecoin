@@ -29,6 +29,8 @@ function mapItem(item) {
   const title = item.title || item.name || '';
   const year  = (item.release_date || item.first_air_date || '').slice(0, 4);
   return {
+    id:        item.id,
+    mediaType: isTV ? 'tv' : 'movie',
     title,
     year,
     rating: item.vote_average ? item.vote_average.toFixed(1) : '',

@@ -190,7 +190,7 @@ function initHero() {
   bg.style.backgroundPosition = 'center';
 
   document.getElementById('heroWatch').addEventListener('click', () => {
-    window.open(`https://flixbaba.mov/search?q=${encodeURIComponent(featured.title)}`, '_blank', 'noopener,noreferrer');
+    document.getElementById('movies').scrollIntoView({ behavior: 'smooth' });
   });
 
   document.getElementById('heroMoreInfo').addEventListener('click', () => {
@@ -208,8 +208,6 @@ function openPlayer(title, targetUrl) {
   document.getElementById('playerTitle').textContent = title;
   extLink.href = targetUrl;
 
-  const proxyUrl = `/proxy?url=${encodeURIComponent(targetUrl)}`;
-
   loading.style.display = 'flex';
   frame.src = '';
 
@@ -217,7 +215,7 @@ function openPlayer(title, targetUrl) {
   document.body.style.overflow = 'hidden';
 
   frame.onload = () => { loading.style.display = 'none'; };
-  frame.src = proxyUrl;
+  frame.src = targetUrl;
 }
 
 function closePlayer() {
@@ -270,7 +268,7 @@ function openModal(id) {
   watchBtn.onclick = (e) => {
     e.preventDefault();
     closeModal();
-    window.open(`https://flixbaba.mov/search?q=${encodeURIComponent(m.title)}`, '_blank', 'noopener,noreferrer');
+    showToast('Scroll down to browse the catalog — select any title to watch in-app');
   };
 
   document.getElementById('fbModal').classList.add('open');
@@ -420,16 +418,18 @@ function liveHue(i) {
 
 function apiToMovie(t, i) {
   return {
-    id:     `live-${i}`,
-    title:  t.title,
-    year:   t.year  || '',
-    rating: t.rating || '',
-    genre:  t.genre || 'Movie',
-    dur:    '',
-    desc:   t.desc  || `Watch "${t.title}" on FlixBaba.`,
-    hue:    liveHue(i),
-    poster: t.poster ? `/api/image?url=${encodeURIComponent(t.poster)}` : '',
-    link:   t.link  || 'https://flixbaba.mov',
+    id:        `live-${i}`,
+    tmdbId:    t.id,
+    mediaType: t.mediaType || 'movie',
+    title:     t.title,
+    year:      t.year  || '',
+    rating:    t.rating || '',
+    genre:     t.genre || 'Movie',
+    dur:       '',
+    desc:      t.desc  || `Watch "${t.title}" on FlixBaba.`,
+    hue:       liveHue(i),
+    poster:    t.poster ? `/api/image?url=${encodeURIComponent(t.poster)}` : '',
+    link:      t.link  || 'https://flixbaba.mov',
   };
 }
 
@@ -486,7 +486,11 @@ function openLiveModal(movie) {
   watchBtn.onclick = (e) => {
     e.preventDefault();
     closeModal();
-    window.open(movie.link || 'https://flixbaba.mov', '_blank', 'noopener,noreferrer');
+    if (movie.tmdbId) {
+      openPlayer(movie.title, `https://vidsrc.to/embed/${movie.mediaType}/${movie.tmdbId}`);
+    } else {
+      showToast('Streaming not available for this title');
+    }
   };
 
   document.getElementById('modalAddList').onclick = () => showToast(`"${movie.title}" saved!`);
