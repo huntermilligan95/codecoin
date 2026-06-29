@@ -205,10 +205,10 @@ function embedUrl(mediaType, tmdbId, server) {
   const type = mediaType === 'tv' ? 'tv' : 'movie';
   switch (server) {
     case 1: return `https://vidsrc.to/embed/${type}/${tmdbId}`;
-    case 2: return `https://vidsrc.xyz/embed/${type}?tmdb=${tmdbId}`;
-    case 3: return `https://embed.su/embed/${type}/${tmdbId}`;
-    case 4: return `https://vidlink.pro/${type}/${tmdbId}`;
-    case 5: return `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1`;
+    case 2: return `https://vidsrc.cc/v2/embed/${type}?tmdb=${tmdbId}`;
+    case 3: return `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1`;
+    case 4: return `https://embed.su/embed/${type}/${tmdbId}`;
+    case 5: return `https://moviesapi.club/${type}/${tmdbId}`;
     default: return `https://vidsrc.to/embed/${type}/${tmdbId}`;
   }
 }
