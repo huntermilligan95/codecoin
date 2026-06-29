@@ -217,12 +217,26 @@ function loadServer(n) {
   if (!_playerCtx) return;
   const frame   = document.getElementById('playerFrame');
   const loading = document.getElementById('playerLoading');
+  const hint    = document.getElementById('playerSlowHint');
+
+  if (loadServer._timer) clearTimeout(loadServer._timer);
+  if (hint) hint.style.display = 'none';
+
   document.querySelectorAll('.fb-player__srv').forEach(b => {
     b.classList.toggle('fb-player__srv--active', +b.dataset.srv === n);
   });
   loading.style.display = 'flex';
   frame.src = '';
-  frame.onload = () => { loading.style.display = 'none'; };
+  frame.onload = () => {
+    clearTimeout(loadServer._timer);
+    loading.style.display = 'none';
+    // Show hint if the embed's own player is still spinning after 12s
+    loadServer._timer = setTimeout(() => {
+      if (hint) hint.style.display = 'inline';
+    }, 12000);
+  };
+  // Hard fallback: clear our overlay after 15s even if onload never fires
+  loadServer._timer = setTimeout(() => { loading.style.display = 'none'; }, 15000);
   frame.src = embedUrl(_playerCtx.mediaType, _playerCtx.tmdbId, n);
 }
 
