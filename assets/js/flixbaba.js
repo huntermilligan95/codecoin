@@ -204,12 +204,12 @@ let _playerCtx = null;  // { tmdbId, mediaType } for server-switch
 function embedUrl(mediaType, tmdbId, server) {
   const type = mediaType === 'tv' ? 'tv' : 'movie';
   switch (server) {
-    case 1: return `https://vidsrc.to/embed/${type}/${tmdbId}`;
-    case 2: return `https://vidsrc.cc/v2/embed/${type}?tmdb=${tmdbId}`;
+    case 1: return `https://player.videasy.net/${type}/${tmdbId}`;
+    case 2: return `https://vidsrc.to/embed/${type}/${tmdbId}`;
     case 3: return `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1`;
-    case 4: return `https://embed.su/embed/${type}/${tmdbId}`;
-    case 5: return `https://moviesapi.club/${type}/${tmdbId}`;
-    default: return `https://vidsrc.to/embed/${type}/${tmdbId}`;
+    case 4: return `https://vidsrc.cc/v2/embed/${type}?tmdb=${tmdbId}`;
+    case 5: return `https://embed.su/embed/${type}/${tmdbId}`;
+    default: return `https://player.videasy.net/${type}/${tmdbId}`;
   }
 }
 
