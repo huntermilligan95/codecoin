@@ -347,8 +347,12 @@ app.get('/proxy', async (req, res) => {
     if ($('base').length === 0) $('head').prepend(`<base href="${pageOrigin}/">`);
 
     $('head').append(`<style>
-      [id*="ad"],[class*="adv"],[class*="popup"],[class*="overlay"]{display:none!important}
-      body{margin:0}
+      /* Block ad containers by naming patterns */
+      [id^="ad-"],[id^="ads-"],[id$="-ad"],[id$="-ads"],[id*="advert"],[id*="banner"],
+      [class*="advert"],[class*="sponsor"],[class*="promo-banner"],[class*="overlay-ad"],
+      [class*="popup"],[class*="pop-up"],[class*="interstitial"],[class*="preroll"],
+      ins.adsbygoogle,div[data-ad],div[data-adunit] { display:none!important }
+      body { margin:0 }
     </style>`);
 
     res.removeHeader('X-Frame-Options');
