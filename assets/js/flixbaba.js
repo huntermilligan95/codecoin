@@ -58,6 +58,19 @@ const MOVIES = {
   ],
 };
 
+// ── TV Show Data ─────────────────────────────────────────
+// tmdbId is used directly by the embed servers (videasy, vidsrc, etc.)
+const TV_SHOWS = [
+  { id: 701, type: 'tv', tmdbId: 1396,   title: 'Breaking Bad',     year: 2008, rating: '9.5', genre: 'Crime',   seasons: 5, dur: '5 Seasons', desc: 'A chemistry teacher turned methamphetamine producer partners with a former student in a quest for financial security.', hue: '35,70%'  },
+  { id: 702, type: 'tv', tmdbId: 66732,  title: 'Stranger Things',  year: 2016, rating: '8.7', genre: 'Sci-Fi',  seasons: 4, dur: '4 Seasons', desc: 'Kids in a small Indiana town uncover government experiments, supernatural forces, and a terrifying parallel dimension.', hue: '260,70%' },
+  { id: 703, type: 'tv', tmdbId: 2316,   title: 'The Office',       year: 2005, rating: '8.9', genre: 'Comedy',  seasons: 9, dur: '9 Seasons', desc: 'A mockumentary following the employees of the Scranton, Pennsylvania branch of the Dunder Mifflin Paper Company.', hue: '50,60%'  },
+  { id: 704, type: 'tv', tmdbId: 1399,   title: 'Game of Thrones',  year: 2011, rating: '9.2', genre: 'Drama',   seasons: 8, dur: '8 Seasons', desc: 'Noble families vie for control of the mythical land of Westeros while an ancient enemy rises after millennia of dormancy.', hue: '180,40%' },
+  { id: 705, type: 'tv', tmdbId: 70523,  title: 'Dark',             year: 2017, rating: '8.8', genre: 'Sci-Fi',  seasons: 3, dur: '3 Seasons', desc: 'A family saga with a supernatural twist set in a German town where missing children expose four families\' dark secrets.', hue: '220,50%' },
+  { id: 706, type: 'tv', tmdbId: 60059,  title: 'Better Call Saul', year: 2015, rating: '8.9', genre: 'Crime',   seasons: 6, dur: '6 Seasons', desc: 'The prequel to Breaking Bad follows the transformation of small-time attorney Jimmy McGill into criminal lawyer Saul Goodman.', hue: '40,60%'  },
+  { id: 707, type: 'tv', tmdbId: 87108,  title: 'Chernobyl',        year: 2019, rating: '9.4', genre: 'Drama',   seasons: 1, dur: '1 Season',  desc: 'A dramatisation of the catastrophic 1986 nuclear disaster at the Chernobyl power station in Soviet Ukraine.', hue: '90,45%'  },
+  { id: 708, type: 'tv', tmdbId: 1396,   title: 'The Flash',        year: 2014, rating: '7.6', genre: 'Action',  seasons: 9, dur: '9 Seasons', desc: 'Barry Allen gains superhuman speed after a particle accelerator explosion and becomes the fastest man alive.', hue: '200,70%' },
+];
+
 // ── State ────────────────────────────────────────────────
 let myList = JSON.parse(localStorage.getItem('fbMyList') || '[]');
 
@@ -77,7 +90,7 @@ function posterIcon(genre) {
 }
 
 function allMovies() {
-  return Object.values(MOVIES).flat();
+  return [...Object.values(MOVIES).flat(), ...TV_SHOWS];
 }
 
 function findById(id) {
@@ -160,6 +173,7 @@ function renderRow(trackId, movies) {
 }
 
 function initRows() {
+  renderRow('rowTvShows', TV_SHOWS);
   renderRow('rowTrending', MOVIES.trending);
   renderRow('rowNew',      MOVIES.newReleases);
   renderRow('rowAction',   MOVIES.action);
@@ -302,11 +316,19 @@ function openModal(id) {
     .map(t => `<span class="fb-modal__tag">${t}</span>`).join('');
 
   const watchBtn = document.getElementById('modalWatch');
-  watchBtn.onclick = (e) => {
-    e.preventDefault();
-    closeModal();
-    showToast('Scroll down to browse the catalog — select any title to watch in-app');
-  };
+  if (m.tmdbId) {
+    watchBtn.onclick = (e) => {
+      e.preventDefault();
+      closeModal();
+      openPlayer(m.title, m.tmdbId, m.type === 'tv' ? 'tv' : 'movie');
+    };
+  } else {
+    watchBtn.onclick = (e) => {
+      e.preventDefault();
+      closeModal();
+      showToast('Select a title from the catalog to watch in-app');
+    };
+  }
 
   document.getElementById('fbModal').classList.add('open');
   document.body.style.overflow = 'hidden';

@@ -163,8 +163,8 @@ async function fetchPage(url) {
 // ── Health check (used by Railway) ───────────────────────
 app.get('/health', (_, res) => res.json({ ok: true }));
 
-// ── Root → FlixBaba ──────────────────────────────────────
-app.get('/', (_, res) => res.redirect('/flixbaba.html'));
+// ── Redirect old /flixbaba.html URL to root ──────────────
+app.get('/flixbaba.html', (_, res) => res.redirect(301, '/'));
 
 // ── Serve static frontend files ──────────────────────────
 // HTML files: no-store so browsers always fetch the latest version
