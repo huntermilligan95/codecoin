@@ -260,6 +260,14 @@
         <button id="closePlayer" title="Close player"><i class="fa-solid fa-xmark"></i></button>
       </div>
     </div>
+    <div class="fb-player__ep-bar" id="playerEpBar" style="display:none">
+      <span class="fb-player__ep-label">Season</span>
+      <select id="epSeason" class="fb-player__ep-select" data-seasons="0"></select>
+      <span class="fb-player__ep-label">Episode</span>
+      <button id="epPrev" class="fb-player__ep-nav" title="Previous episode"><i class="fa-solid fa-chevron-left"></i></button>
+      <input id="epNumber" type="number" class="fb-player__ep-input" value="1" min="1" max="99">
+      <button id="epNext" class="fb-player__ep-nav" title="Next episode"><i class="fa-solid fa-chevron-right"></i></button>
+    </div>
     <div class="fb-player__loading" id="playerLoading">
       <div class="fb-player__spinner"></div>
       <p>Loading from FlixBaba…</p>
@@ -268,6 +276,6 @@
       allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>
   </div>
 
-  <script src="./assets/js/flixbaba.js?v=14"></script>
+  <script src="./assets/js/flixbaba.js?v=15"></script>
 </body>
 </html>
