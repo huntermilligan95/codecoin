@@ -575,7 +575,7 @@ function liveHue(i) {
 }
 
 function apiToMovie(t, i) {
-  return {
+  const movie = {
     id:        `live-${i}`,
     tmdbId:    t.id,
     mediaType: t.mediaType || 'movie',
@@ -589,6 +589,13 @@ function apiToMovie(t, i) {
     poster:    t.poster ? `/api/image?url=${encodeURIComponent(t.poster)}` : '',
     link:      t.link  || 'https://flixbaba.mov',
   };
+  // Enrich with accurate season/episode data if the show is in our local list
+  const known = TV_SHOWS.find(s => s.tmdbId === t.id);
+  if (known) {
+    movie.seasons  = known.seasons;
+    movie.epCounts = known.epCounts;
+  }
+  return movie;
 }
 
 function buildLiveCard(movie) {
