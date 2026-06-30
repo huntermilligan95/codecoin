@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>FlixBaba - Stream Unlimited Movies & Shows</title>
-  <link rel="stylesheet" href="./assets/css/flixbaba.css?v=5">
+  <link rel="stylesheet" href="./assets/css/flixbaba.css?v=6">
   <link rel="stylesheet" href="/fontawesome/css/all.min.css">
 </head>
 <body>
@@ -254,28 +254,24 @@
       </div>
       <span id="playerSlowHint" style="display:none;font-size:0.7rem;color:#9090b0;white-space:nowrap">Still loading? Try another server</span>
       <div class="fb-player__bar-actions">
+        <button class="fb-ep__toggle" id="epToggle" style="display:none" title="Choose season &amp; episode">
+          <i class="fa-solid fa-clapperboard"></i>
+          <span id="epToggleLabel">S1 · E1</span>
+          <i class="fa-solid fa-chevron-down fb-ep__toggle-caret"></i>
+        </button>
         <a id="playerExternal" href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-player__ext-btn" title="Open on FlixBaba">
           <i class="fa-solid fa-arrow-up-right-from-square"></i>
         </a>
         <button id="closePlayer" title="Close player"><i class="fa-solid fa-xmark"></i></button>
       </div>
     </div>
-    <div class="fb-ep-bar" id="playerEpBar" style="display:none">
-      <div class="fb-ep__section">
-        <span class="fb-ep__label">Season</span>
-        <div class="fb-ep__season-pills" id="epSeasonPills"></div>
-      </div>
-      <div class="fb-ep__divider"></div>
-      <div class="fb-ep__section">
-        <span class="fb-ep__label">Episode</span>
-        <div class="fb-ep__ep-ctrl">
-          <button class="fb-ep__arrow" id="epPrev" title="Previous episode">
-            <i class="fa-solid fa-chevron-left"></i>
-          </button>
-          <span class="fb-ep__num" id="epNum">1</span>
-          <button class="fb-ep__arrow" id="epNext" title="Next episode">
-            <i class="fa-solid fa-chevron-right"></i>
-          </button>
+    <!-- Episode picker dropdown — absolute, overlays the video -->
+    <div class="fb-ep-panel" id="epPanel">
+      <div class="fb-ep-panel__inner">
+        <div class="fb-ep-panel__seasons" id="epPanelSeasons"></div>
+        <div class="fb-ep-panel__episodes-wrap">
+          <p class="fb-ep-panel__heading" id="epPanelHeading">Season 1</p>
+          <div class="fb-ep-panel__episodes" id="epPanelEpisodes"></div>
         </div>
       </div>
     </div>
@@ -289,6 +285,6 @@
     </div>
   </div>
 
-  <script src="./assets/js/flixbaba.js?v=16"></script>
+  <script src="./assets/js/flixbaba.js?v=17"></script>
 </body>
 </html>

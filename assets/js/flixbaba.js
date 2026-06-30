@@ -60,15 +60,16 @@ const MOVIES = {
 
 // ── TV Show Data ─────────────────────────────────────────
 // tmdbId is used directly by the embed servers (videasy, vidsrc, etc.)
+// epCounts: number of episodes per season in order
 const TV_SHOWS = [
-  { id: 701, type: 'tv', tmdbId: 1396,   title: 'Breaking Bad',     year: 2008, rating: '9.5', genre: 'Crime',   seasons: 5, dur: '5 Seasons', desc: 'A chemistry teacher turned methamphetamine producer partners with a former student in a quest for financial security.', hue: '35,70%'  },
-  { id: 702, type: 'tv', tmdbId: 66732,  title: 'Stranger Things',  year: 2016, rating: '8.7', genre: 'Sci-Fi',  seasons: 4, dur: '4 Seasons', desc: 'Kids in a small Indiana town uncover government experiments, supernatural forces, and a terrifying parallel dimension.', hue: '260,70%' },
-  { id: 703, type: 'tv', tmdbId: 2316,   title: 'The Office',       year: 2005, rating: '8.9', genre: 'Comedy',  seasons: 9, dur: '9 Seasons', desc: 'A mockumentary following the employees of the Scranton, Pennsylvania branch of the Dunder Mifflin Paper Company.', hue: '50,60%'  },
-  { id: 704, type: 'tv', tmdbId: 1399,   title: 'Game of Thrones',  year: 2011, rating: '9.2', genre: 'Drama',   seasons: 8, dur: '8 Seasons', desc: 'Noble families vie for control of the mythical land of Westeros while an ancient enemy rises after millennia of dormancy.', hue: '180,40%' },
-  { id: 705, type: 'tv', tmdbId: 70523,  title: 'Dark',             year: 2017, rating: '8.8', genre: 'Sci-Fi',  seasons: 3, dur: '3 Seasons', desc: 'A family saga with a supernatural twist set in a German town where missing children expose four families\' dark secrets.', hue: '220,50%' },
-  { id: 706, type: 'tv', tmdbId: 60059,  title: 'Better Call Saul', year: 2015, rating: '8.9', genre: 'Crime',   seasons: 6, dur: '6 Seasons', desc: 'The prequel to Breaking Bad follows the transformation of small-time attorney Jimmy McGill into criminal lawyer Saul Goodman.', hue: '40,60%'  },
-  { id: 707, type: 'tv', tmdbId: 87108,  title: 'Chernobyl',        year: 2019, rating: '9.4', genre: 'Drama',   seasons: 1, dur: '1 Season',  desc: 'A dramatisation of the catastrophic 1986 nuclear disaster at the Chernobyl power station in Soviet Ukraine.', hue: '90,45%'  },
-  { id: 708, type: 'tv', tmdbId: 60735,  title: 'The Flash',        year: 2014, rating: '7.6', genre: 'Action',  seasons: 9, dur: '9 Seasons', desc: 'Barry Allen gains superhuman speed after a particle accelerator explosion and becomes the fastest man alive.', hue: '200,70%' },
+  { id: 701, type: 'tv', tmdbId: 1396,   title: 'Breaking Bad',     year: 2008, rating: '9.5', genre: 'Crime',   seasons: 5, epCounts: [7,13,13,13,16], dur: '5 Seasons', desc: 'A chemistry teacher turned methamphetamine producer partners with a former student in a quest for financial security.', hue: '35,70%'  },
+  { id: 702, type: 'tv', tmdbId: 66732,  title: 'Stranger Things',  year: 2016, rating: '8.7', genre: 'Sci-Fi',  seasons: 4, epCounts: [8,9,8,9],       dur: '4 Seasons', desc: 'Kids in a small Indiana town uncover government experiments, supernatural forces, and a terrifying parallel dimension.', hue: '260,70%' },
+  { id: 703, type: 'tv', tmdbId: 2316,   title: 'The Office',       year: 2005, rating: '8.9', genre: 'Comedy',  seasons: 9, epCounts: [6,22,25,14,26,26,24,24,25], dur: '9 Seasons', desc: 'A mockumentary following the employees of the Scranton, Pennsylvania branch of the Dunder Mifflin Paper Company.', hue: '50,60%'  },
+  { id: 704, type: 'tv', tmdbId: 1399,   title: 'Game of Thrones',  year: 2011, rating: '9.2', genre: 'Drama',   seasons: 8, epCounts: [10,10,10,10,10,10,7,6], dur: '8 Seasons', desc: 'Noble families vie for control of the mythical land of Westeros while an ancient enemy rises after millennia of dormancy.', hue: '180,40%' },
+  { id: 705, type: 'tv', tmdbId: 70523,  title: 'Dark',             year: 2017, rating: '8.8', genre: 'Sci-Fi',  seasons: 3, epCounts: [10,8,8],        dur: '3 Seasons', desc: 'A family saga with a supernatural twist set in a German town where missing children expose four families\' dark secrets.', hue: '220,50%' },
+  { id: 706, type: 'tv', tmdbId: 60059,  title: 'Better Call Saul', year: 2015, rating: '8.9', genre: 'Crime',   seasons: 6, epCounts: [10,10,10,10,10,13], dur: '6 Seasons', desc: 'The prequel to Breaking Bad follows the transformation of small-time attorney Jimmy McGill into criminal lawyer Saul Goodman.', hue: '40,60%'  },
+  { id: 707, type: 'tv', tmdbId: 87108,  title: 'Chernobyl',        year: 2019, rating: '9.4', genre: 'Drama',   seasons: 1, epCounts: [5],             dur: '1 Season',  desc: 'A dramatisation of the catastrophic 1986 nuclear disaster at the Chernobyl power station in Soviet Ukraine.', hue: '90,45%'  },
+  { id: 708, type: 'tv', tmdbId: 60735,  title: 'The Flash',        year: 2014, rating: '7.6', genre: 'Action',  seasons: 9, epCounts: [23,23,23,23,22,23,18,20,13], dur: '9 Seasons', desc: 'Barry Allen gains superhuman speed after a particle accelerator explosion and becomes the fastest man alive.', hue: '200,70%' },
 ];
 
 // ── State ────────────────────────────────────────────────
@@ -213,7 +214,7 @@ function initHero() {
 }
 
 // ── Player / Server Picker ───────────────────────────────
-let _playerCtx = null;  // { tmdbId, mediaType, season, episode, seasons }
+let _playerCtx = null;  // { tmdbId, mediaType, season, episode, seasons, epCounts }
 let _activeServer = 1;
 
 function embedUrl(mediaType, tmdbId, server, season, episode) {
@@ -255,35 +256,95 @@ function loadServer(n) {
   frame.src = embedUrl(_playerCtx.mediaType, _playerCtx.tmdbId, n, _playerCtx.season, _playerCtx.episode);
 }
 
-function updateEpisodeBar() {
-  const bar = document.getElementById('playerEpBar');
-  if (!_playerCtx || _playerCtx.mediaType !== 'tv') { bar.style.display = 'none'; return; }
-  bar.style.display = 'flex';
-
-  // Season pills — rebuild every time (simple and correct)
-  const pillWrap = document.getElementById('epSeasonPills');
-  pillWrap.innerHTML = '';
-  for (let s = 1; s <= _playerCtx.seasons; s++) {
-    const btn = document.createElement('button');
-    btn.className = 'fb-ep__season-pill' + (s === _playerCtx.season ? ' active' : '');
-    btn.textContent = `S${s}`;
-    btn.dataset.s = s;
-    pillWrap.appendChild(btn);
-  }
-
-  // Episode counter
-  document.getElementById('epNum').textContent = _playerCtx.episode;
+// ── Episode Dropdown Panel ───────────────────────────────
+function epCountForSeason(s) {
+  if (!_playerCtx || !_playerCtx.epCounts) return 20;
+  return _playerCtx.epCounts[s - 1] || 20;
 }
 
-function openPlayer(title, tmdbId, mediaType, seasons) {
+function updateEpToggle() {
+  const toggle = document.getElementById('epToggle');
+  const label  = document.getElementById('epToggleLabel');
+  if (!_playerCtx || _playerCtx.mediaType !== 'tv') {
+    toggle.style.display = 'none';
+    return;
+  }
+  toggle.style.display = 'flex';
+  label.textContent = `S${_playerCtx.season}  ·  E${_playerCtx.episode}`;
+}
+
+function buildEpPanel() {
+  if (!_playerCtx || _playerCtx.mediaType !== 'tv') return;
+
+  // Seasons column
+  const seasonsEl = document.getElementById('epPanelSeasons');
+  seasonsEl.innerHTML = '';
+  for (let s = 1; s <= _playerCtx.seasons; s++) {
+    const btn = document.createElement('button');
+    btn.className = 'fb-ep-panel__season-btn' + (s === _playerCtx.season ? ' active' : '');
+    btn.textContent = `S${s}`;
+    btn.dataset.s = s;
+    btn.addEventListener('click', () => {
+      _playerCtx.season  = +btn.dataset.s;
+      _playerCtx.episode = 1;
+      buildEpPanel();
+      updateEpToggle();
+      loadServer(_activeServer);
+    });
+    seasonsEl.appendChild(btn);
+  }
+
+  // Heading
+  document.getElementById('epPanelHeading').textContent = `Season ${_playerCtx.season}`;
+
+  // Episodes grid
+  const epsEl = document.getElementById('epPanelEpisodes');
+  epsEl.innerHTML = '';
+  const count = epCountForSeason(_playerCtx.season);
+  for (let e = 1; e <= count; e++) {
+    const btn = document.createElement('button');
+    btn.className = 'fb-ep-panel__ep-btn' + (e === _playerCtx.episode ? ' active' : '');
+    btn.textContent = e;
+    btn.dataset.e = e;
+    btn.addEventListener('click', () => {
+      _playerCtx.episode = +btn.dataset.e;
+      closeEpPanel();
+      updateEpToggle();
+      loadServer(_activeServer);
+    });
+    epsEl.appendChild(btn);
+  }
+}
+
+function openEpPanel() {
+  buildEpPanel();
+  document.getElementById('epPanel').classList.add('open');
+  document.getElementById('epToggle').classList.add('open');
+}
+
+function closeEpPanel() {
+  document.getElementById('epPanel').classList.remove('open');
+  document.getElementById('epToggle').classList.remove('open');
+}
+
+function toggleEpPanel() {
+  if (document.getElementById('epPanel').classList.contains('open')) {
+    closeEpPanel();
+  } else {
+    openEpPanel();
+  }
+}
+
+function openPlayer(title, tmdbId, mediaType, seasons, epCounts) {
   const player  = document.getElementById('fbPlayer');
   const extLink = document.getElementById('playerExternal');
   document.getElementById('playerTitle').textContent = title;
   extLink.href = `https://vidsrc.to/embed/${mediaType === 'tv' ? 'tv' : 'movie'}/${tmdbId}`;
-  _playerCtx = { tmdbId, mediaType, season: 1, episode: 1, seasons: seasons || 1 };
+  _playerCtx = { tmdbId, mediaType, season: 1, episode: 1, seasons: seasons || 1, epCounts: epCounts || null };
   player.classList.add('open');
   document.body.style.overflow = 'hidden';
-  updateEpisodeBar();
+  closeEpPanel();
+  updateEpToggle();
   loadServer(1);
 }
 
@@ -294,42 +355,28 @@ function closePlayer() {
   frame.src = '';
   document.body.style.overflow = '';
   _playerCtx = null;
+  closeEpPanel();
 }
 
 function initPlayer() {
   document.getElementById('closePlayer').addEventListener('click', closePlayer);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closePlayer(); });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePlayer(); closeEpPanel(); } });
   document.querySelectorAll('.fb-player__srv').forEach(btn => {
     btn.addEventListener('click', () => loadServer(+btn.dataset.srv));
   });
 
-  // Season pill clicks (delegated)
-  document.getElementById('epSeasonPills').addEventListener('click', e => {
-    const pill = e.target.closest('.fb-ep__season-pill');
-    if (!pill || !_playerCtx) return;
-    _playerCtx.season  = +pill.dataset.s;
-    _playerCtx.episode = 1;
-    updateEpisodeBar();
-    loadServer(_activeServer);
+  document.getElementById('epToggle').addEventListener('click', e => {
+    e.stopPropagation();
+    toggleEpPanel();
   });
 
-  document.getElementById('epPrev').addEventListener('click', () => {
-    if (!_playerCtx) return;
-    if (_playerCtx.episode > 1) {
-      _playerCtx.episode--;
-    } else if (_playerCtx.season > 1) {
-      _playerCtx.season--;
-      _playerCtx.episode = 20;
+  // Close panel when clicking outside toggle + panel
+  document.addEventListener('click', e => {
+    const panel  = document.getElementById('epPanel');
+    const toggle = document.getElementById('epToggle');
+    if (panel.classList.contains('open') && !panel.contains(e.target) && !toggle.contains(e.target)) {
+      closeEpPanel();
     }
-    updateEpisodeBar();
-    loadServer(_activeServer);
-  });
-
-  document.getElementById('epNext').addEventListener('click', () => {
-    if (!_playerCtx) return;
-    _playerCtx.episode++;
-    updateEpisodeBar();
-    loadServer(_activeServer);
   });
 }
 
@@ -371,7 +418,7 @@ function openModal(id) {
     watchBtn.onclick = (e) => {
       e.preventDefault();
       closeModal();
-      openPlayer(m.title, m.tmdbId, m.type === 'tv' ? 'tv' : 'movie', m.seasons);
+      openPlayer(m.title, m.tmdbId, m.type === 'tv' ? 'tv' : 'movie', m.seasons, m.epCounts);
     };
   } else {
     watchBtn.onclick = (e) => {
@@ -597,7 +644,7 @@ function openLiveModal(movie) {
     e.preventDefault();
     closeModal();
     if (movie.tmdbId) {
-      openPlayer(movie.title, movie.tmdbId, movie.mediaType, movie.seasons || 1);
+      openPlayer(movie.title, movie.tmdbId, movie.mediaType, movie.seasons || 1, movie.epCounts);
     } else {
       showToast('Streaming not available for this title');
     }

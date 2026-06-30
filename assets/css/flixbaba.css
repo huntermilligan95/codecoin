@@ -918,114 +918,154 @@ button {
   border-color: var(--accent) !important;
 }
 
-/* ── Episode bar ─────────────────────────────────────────── */
-.fb-ep-bar {
+/* ── Episode toggle button (lives in player bar) ─────────── */
+.fb-ep__toggle {
   display: flex;
   align-items: center;
-  gap: 0;
-  padding: 0 20px;
-  height: 50px;
-  background: linear-gradient(180deg, rgba(18,12,35,0.98) 0%, rgba(10,8,22,0.99) 100%);
-  border-bottom: 1px solid rgba(139,92,246,0.2);
-  flex-shrink: 0;
-  box-shadow: 0 2px 16px rgba(0,0,0,0.4);
-}
-
-.fb-ep__section {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.fb-ep__divider {
-  width: 1px;
-  height: 28px;
-  background: rgba(255,255,255,0.1);
-  margin: 0 18px;
-  flex-shrink: 0;
-}
-
-.fb-ep__label {
-  font-size: 0.65rem;
-  color: var(--muted);
+  gap: 6px;
+  padding: 5px 13px;
+  border-radius: 8px;
+  background: rgba(139,92,246,0.14);
+  border: 1px solid rgba(139,92,246,0.35);
+  color: var(--text);
+  font-size: 0.8rem;
   font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.01em;
+  transition: background var(--transition), border-color var(--transition), box-shadow var(--transition);
   white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.fb-ep__season-pills {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  flex-wrap: nowrap;
-  overflow-x: auto;
-  max-width: 340px;
-  scrollbar-width: none;
-}
-.fb-ep__season-pills::-webkit-scrollbar { display: none; }
-
-.fb-ep__season-pill {
-  flex-shrink: 0;
-  padding: 4px 11px;
-  border-radius: 99px;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.03em;
-  color: var(--muted);
-  background: rgba(255,255,255,0.07);
-  border: 1px solid rgba(255,255,255,0.1);
-  transition: background var(--transition), color var(--transition), border-color var(--transition), box-shadow var(--transition);
   cursor: pointer;
 }
-.fb-ep__season-pill:hover {
-  background: rgba(139,92,246,0.2);
-  color: var(--text);
-  border-color: rgba(139,92,246,0.4);
+.fb-ep__toggle:hover {
+  background: rgba(139,92,246,0.28);
+  border-color: rgba(139,92,246,0.6);
 }
-.fb-ep__season-pill.active {
+.fb-ep__toggle.open {
+  background: var(--accent);
+  border-color: var(--accent);
+  box-shadow: 0 0 14px rgba(139,92,246,0.5);
+}
+.fb-ep__toggle-caret {
+  font-size: 0.6rem;
+  transition: transform 220ms ease;
+  opacity: 0.7;
+}
+.fb-ep__toggle.open .fb-ep__toggle-caret {
+  transform: rotate(180deg);
+}
+
+/* ── Episode picker dropdown panel ───────────────────────── */
+.fb-ep-panel {
+  position: absolute;
+  top: 52px;
+  left: 0;
+  right: 0;
+  z-index: 20;
+  display: none;
+  background: rgba(11,8,22,0.97);
+  border-bottom: 1px solid rgba(139,92,246,0.22);
+  backdrop-filter: blur(16px);
+  box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+  max-height: 300px;
+  overflow: hidden;
+  animation: epPanelIn 180ms ease;
+}
+.fb-ep-panel.open { display: flex; }
+
+@keyframes epPanelIn {
+  from { opacity: 0; transform: translateY(-8px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+.fb-ep-panel__inner {
+  display: flex;
+  width: 100%;
+  max-height: 300px;
+}
+
+/* Left: season column */
+.fb-ep-panel__seasons {
+  min-width: 72px;
+  width: 72px;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 12px 8px;
+  overflow-y: auto;
+  border-right: 1px solid rgba(255,255,255,0.07);
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139,92,246,0.4) transparent;
+}
+
+.fb-ep-panel__season-btn {
+  padding: 8px 4px;
+  border-radius: 8px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--muted);
+  background: transparent;
+  text-align: center;
+  transition: background var(--transition), color var(--transition);
+  cursor: pointer;
+  flex-shrink: 0;
+  border: 1px solid transparent;
+}
+.fb-ep-panel__season-btn:hover {
+  background: rgba(139,92,246,0.18);
+  color: var(--text);
+  border-color: rgba(139,92,246,0.3);
+}
+.fb-ep-panel__season-btn.active {
   background: var(--accent);
   color: #fff;
   border-color: var(--accent);
-  box-shadow: 0 0 10px rgba(139,92,246,0.45);
 }
 
-.fb-ep__ep-ctrl {
-  display: flex;
-  align-items: center;
-  gap: 2px;
-  background: rgba(255,255,255,0.05);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 99px;
-  padding: 3px 5px;
+/* Right: episodes area */
+.fb-ep-panel__episodes-wrap {
+  flex: 1;
+  overflow-y: auto;
+  padding: 14px 16px 16px;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(139,92,246,0.4) transparent;
 }
 
-.fb-ep__arrow {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
+.fb-ep-panel__heading {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
   color: var(--muted);
-  font-size: 0.72rem;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  transition: background var(--transition), color var(--transition);
-  flex-shrink: 0;
-}
-.fb-ep__arrow:hover {
-  background: rgba(139,92,246,0.25);
-  color: var(--text);
+  margin-bottom: 12px;
 }
 
-.fb-ep__num {
-  min-width: 36px;
+.fb-ep-panel__episodes {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  gap: 6px;
+}
+
+.fb-ep-panel__ep-btn {
+  padding: 10px 4px;
+  border-radius: 8px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--muted);
+  background: rgba(255,255,255,0.05);
+  border: 1px solid rgba(255,255,255,0.08);
   text-align: center;
-  font-size: 0.92rem;
-  font-weight: 800;
+  cursor: pointer;
+  transition: background var(--transition), color var(--transition), border-color var(--transition), box-shadow var(--transition);
+}
+.fb-ep-panel__ep-btn:hover {
+  background: rgba(139,92,246,0.2);
   color: var(--text);
-  font-variant-numeric: tabular-nums;
-  letter-spacing: -0.02em;
+  border-color: rgba(139,92,246,0.45);
+}
+.fb-ep-panel__ep-btn.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+  box-shadow: 0 0 10px rgba(139,92,246,0.4);
 }
 
 .fb-player__content {
