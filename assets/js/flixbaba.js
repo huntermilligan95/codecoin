@@ -68,7 +68,7 @@ const TV_SHOWS = [
   { id: 705, type: 'tv', tmdbId: 70523,  title: 'Dark',             year: 2017, rating: '8.8', genre: 'Sci-Fi',  seasons: 3, dur: '3 Seasons', desc: 'A family saga with a supernatural twist set in a German town where missing children expose four families\' dark secrets.', hue: '220,50%' },
   { id: 706, type: 'tv', tmdbId: 60059,  title: 'Better Call Saul', year: 2015, rating: '8.9', genre: 'Crime',   seasons: 6, dur: '6 Seasons', desc: 'The prequel to Breaking Bad follows the transformation of small-time attorney Jimmy McGill into criminal lawyer Saul Goodman.', hue: '40,60%'  },
   { id: 707, type: 'tv', tmdbId: 87108,  title: 'Chernobyl',        year: 2019, rating: '9.4', genre: 'Drama',   seasons: 1, dur: '1 Season',  desc: 'A dramatisation of the catastrophic 1986 nuclear disaster at the Chernobyl power station in Soviet Ukraine.', hue: '90,45%'  },
-  { id: 708, type: 'tv', tmdbId: 1396,   title: 'The Flash',        year: 2014, rating: '7.6', genre: 'Action',  seasons: 9, dur: '9 Seasons', desc: 'Barry Allen gains superhuman speed after a particle accelerator explosion and becomes the fastest man alive.', hue: '200,70%' },
+  { id: 708, type: 'tv', tmdbId: 60735,  title: 'The Flash',        year: 2014, rating: '7.6', genre: 'Action',  seasons: 9, dur: '9 Seasons', desc: 'Barry Allen gains superhuman speed after a particle accelerator explosion and becomes the fastest man alive.', hue: '200,70%' },
 ];
 
 // ── State ────────────────────────────────────────────────
@@ -258,23 +258,21 @@ function loadServer(n) {
 function updateEpisodeBar() {
   const bar = document.getElementById('playerEpBar');
   if (!_playerCtx || _playerCtx.mediaType !== 'tv') { bar.style.display = 'none'; return; }
-
   bar.style.display = 'flex';
-  const seasonSel = document.getElementById('epSeason');
-  const epInput   = document.getElementById('epNumber');
 
-  // Rebuild season options if seasons count changed
-  if (seasonSel.dataset.seasons !== String(_playerCtx.seasons)) {
-    seasonSel.innerHTML = '';
-    for (let s = 1; s <= _playerCtx.seasons; s++) {
-      const o = document.createElement('option');
-      o.value = s; o.textContent = `Season ${s}`;
-      seasonSel.appendChild(o);
-    }
-    seasonSel.dataset.seasons = _playerCtx.seasons;
+  // Season pills — rebuild every time (simple and correct)
+  const pillWrap = document.getElementById('epSeasonPills');
+  pillWrap.innerHTML = '';
+  for (let s = 1; s <= _playerCtx.seasons; s++) {
+    const btn = document.createElement('button');
+    btn.className = 'fb-ep__season-pill' + (s === _playerCtx.season ? ' active' : '');
+    btn.textContent = `S${s}`;
+    btn.dataset.s = s;
+    pillWrap.appendChild(btn);
   }
-  seasonSel.value = _playerCtx.season;
-  epInput.value   = _playerCtx.episode;
+
+  // Episode counter
+  document.getElementById('epNum').textContent = _playerCtx.episode;
 }
 
 function openPlayer(title, tmdbId, mediaType, seasons) {
@@ -305,12 +303,13 @@ function initPlayer() {
     btn.addEventListener('click', () => loadServer(+btn.dataset.srv));
   });
 
-  // Episode bar controls
-  document.getElementById('epSeason').addEventListener('change', e => {
-    if (!_playerCtx) return;
-    _playerCtx.season  = +e.target.value;
+  // Season pill clicks (delegated)
+  document.getElementById('epSeasonPills').addEventListener('click', e => {
+    const pill = e.target.closest('.fb-ep__season-pill');
+    if (!pill || !_playerCtx) return;
+    _playerCtx.season  = +pill.dataset.s;
     _playerCtx.episode = 1;
-    document.getElementById('epNumber').value = 1;
+    updateEpisodeBar();
     loadServer(_activeServer);
   });
 
@@ -330,14 +329,6 @@ function initPlayer() {
     if (!_playerCtx) return;
     _playerCtx.episode++;
     updateEpisodeBar();
-    loadServer(_activeServer);
-  });
-
-  document.getElementById('epNumber').addEventListener('change', e => {
-    if (!_playerCtx) return;
-    const n = parseInt(e.target.value) || 1;
-    _playerCtx.episode = Math.max(1, n);
-    e.target.value = _playerCtx.episode;
     loadServer(_activeServer);
   });
 }
@@ -606,7 +597,7 @@ function openLiveModal(movie) {
     e.preventDefault();
     closeModal();
     if (movie.tmdbId) {
-      openPlayer(movie.title, movie.tmdbId, movie.mediaType);
+      openPlayer(movie.title, movie.tmdbId, movie.mediaType, movie.seasons || 1);
     } else {
       showToast('Streaming not available for this title');
     }
