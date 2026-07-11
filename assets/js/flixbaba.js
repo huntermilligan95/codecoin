@@ -706,7 +706,7 @@ function openLiveModal(movie) {
   if (heroImg) {
     hero.style.backgroundImage = `url(${heroImg})`;
     hero.style.backgroundSize  = 'cover';
-    hero.style.backgroundPosition = 'center 20%';
+    hero.style.backgroundPosition = 'center';
   } else {
     hero.style.background = posterGradient(movie.hue);
   }
