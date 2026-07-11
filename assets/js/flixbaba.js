@@ -702,10 +702,11 @@ function openLiveModal(movie) {
   document.getElementById('modalDesc').textContent  = movie.desc;
 
   const hero = document.getElementById('modalHero');
-  if (movie.poster) {
-    hero.style.backgroundImage = `url(${movie.poster})`;
+  const heroImg = movie.backdrop || movie.poster;
+  if (heroImg) {
+    hero.style.backgroundImage = `url(${heroImg})`;
     hero.style.backgroundSize  = 'cover';
-    hero.style.backgroundPosition = 'center';
+    hero.style.backgroundPosition = 'center 20%';
   } else {
     hero.style.background = posterGradient(movie.hue);
   }
