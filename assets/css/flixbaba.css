@@ -379,6 +379,60 @@ button {
   animation: bounce 2s infinite;
 }
 
+.fb-hero__nav-btn {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  z-index: 10;
+  width: 46px;
+  height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(255,255,255,.25);
+  background: rgba(0,0,0,.45);
+  color: #fff;
+  font-size: 1rem;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .2s, border-color .2s, opacity .2s;
+  opacity: 0;
+}
+.fb-hero:hover .fb-hero__nav-btn { opacity: 1; }
+.fb-hero__nav-btn:hover { background: rgba(0,0,0,.75); border-color: rgba(255,255,255,.5); }
+.fb-hero__nav-btn--prev { left: 20px; }
+.fb-hero__nav-btn--next { right: 20px; }
+
+.fb-hero__dots {
+  position: absolute;
+  bottom: 52px;
+  left: 64px;
+  display: flex;
+  gap: 7px;
+  z-index: 10;
+}
+.fb-hero__dot {
+  width: 28px;
+  height: 3px;
+  border-radius: 2px;
+  background: rgba(255,255,255,.35);
+  border: none;
+  cursor: pointer;
+  padding: 0;
+  transition: background .25s, width .25s;
+}
+.fb-hero__dot--active {
+  background: #fff;
+  width: 48px;
+}
+
+.fb-hero__content {
+  transition: opacity .35s ease;
+}
+.fb-hero__content.fb-fade {
+  opacity: 0;
+}
+
 @keyframes bounce {
   0%, 100% { transform: translateX(-50%) translateY(0); }
   50% { transform: translateX(-50%) translateY(8px); }

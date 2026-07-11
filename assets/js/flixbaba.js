@@ -198,21 +198,86 @@ function initRowArrows() {
 }
 
 // ── Hero ─────────────────────────────────────────────────
+function showHeroSlide(idx) {
+  if (!_heroSlides.length) return;
+  _heroIdx = ((idx % _heroSlides.length) + _heroSlides.length) % _heroSlides.length;
+  const m = _heroSlides[_heroIdx];
+
+  const content = document.querySelector('.fb-hero__content');
+  content.classList.add('fb-fade');
+
+  setTimeout(() => {
+    const bg = document.getElementById('heroBg');
+    if (m.backdrop || m.poster) bg.style.backgroundImage = `url(${m.backdrop || m.poster})`;
+    document.getElementById('heroTitle').textContent = m.title;
+    document.getElementById('heroDesc').textContent  = m.desc;
+    document.getElementById('heroMeta').innerHTML = `
+      ${m.rating ? `<span class="fb-hero__rating"><i class="fa-solid fa-star"></i> ${m.rating}</span>` : ''}
+      ${m.year   ? `<span>${m.year}</span>` : ''}
+      <span class="fb-hero__genre">${m.genre}</span>
+    `;
+    document.getElementById('heroWatch').onclick = () => {
+      if (m.tmdbId) openPlayer(m.title, m.tmdbId, m.mediaType, m.seasons || 1, m.epCounts || null);
+      else document.getElementById('movies').scrollIntoView({ behavior: 'smooth' });
+    };
+    document.getElementById('heroMoreInfo').onclick = () => openLiveModal(m);
+    content.classList.remove('fb-fade');
+  }, 300);
+
+  document.querySelectorAll('.fb-hero__dot').forEach((dot, i) => {
+    dot.classList.toggle('fb-hero__dot--active', i === _heroIdx);
+  });
+}
+
+function startHeroTimer() {
+  if (_heroTimer) clearInterval(_heroTimer);
+  _heroTimer = setInterval(() => showHeroSlide(_heroIdx + 1), 7000);
+}
+
+function initHeroSlides(slides) {
+  _heroSlides = slides;
+  const dotsEl = document.getElementById('heroDots');
+  dotsEl.innerHTML = '';
+  slides.forEach((_, i) => {
+    const dot = document.createElement('button');
+    dot.className = 'fb-hero__dot' + (i === 0 ? ' fb-hero__dot--active' : '');
+    dot.addEventListener('click', () => { showHeroSlide(i); startHeroTimer(); });
+    dotsEl.appendChild(dot);
+  });
+  showHeroSlide(0);
+  startHeroTimer();
+}
+
 function initHero() {
   const featured = MOVIES.trending[0];
   const bg = document.getElementById('heroBg');
   bg.style.backgroundImage = `url(https://picsum.photos/seed/fb${featured.id}hero/1600/900)`;
-  bg.style.backgroundSize = 'cover';
-  bg.style.backgroundPosition = 'center';
 
   document.getElementById('heroWatch').addEventListener('click', () => {
     document.getElementById('movies').scrollIntoView({ behavior: 'smooth' });
   });
-
   document.getElementById('heroMoreInfo').addEventListener('click', () => {
     openModal(featured.id);
   });
+
+  document.getElementById('heroPrev').addEventListener('click', () => {
+    showHeroSlide(_heroIdx - 1);
+    startHeroTimer();
+  });
+  document.getElementById('heroNext').addEventListener('click', () => {
+    showHeroSlide(_heroIdx + 1);
+    startHeroTimer();
+  });
+
+  const hero = document.getElementById('hero');
+  hero.addEventListener('mouseenter', () => { if (_heroTimer) clearInterval(_heroTimer); });
+  hero.addEventListener('mouseleave', () => { if (_heroSlides.length) startHeroTimer(); });
 }
+
+// ── Hero carousel state ──────────────────────────────────
+let _heroSlides = [];
+let _heroIdx    = 0;
+let _heroTimer  = null;
 
 // ── Player / Server Picker ───────────────────────────────
 let _playerCtx = null;  // { tmdbId, mediaType, season, episode, seasons, epCounts }
@@ -711,24 +776,6 @@ function insertLiveRow(titles) {
   showToast(`${titles.length} titles loaded live from ChillFlix`);
 }
 
-function updateHero(raw) {
-  const m = apiToMovie(raw, 0);
-  const bg = document.getElementById('heroBg');
-  const imgUrl = m.backdrop || m.poster;
-  if (imgUrl) bg.style.backgroundImage = `url(${imgUrl})`;
-  document.getElementById('heroTitle').textContent = m.title;
-  document.getElementById('heroDesc').textContent  = m.desc;
-  document.getElementById('heroMeta').innerHTML = `
-    ${m.rating ? `<span class="fb-hero__rating"><i class="fa-solid fa-star"></i> ${m.rating}</span>` : ''}
-    ${m.year   ? `<span>${m.year}</span>` : ''}
-    <span class="fb-hero__genre">${m.genre}</span>
-  `;
-  document.getElementById('heroWatch').onclick = () => {
-    if (m.tmdbId) openPlayer(m.title, m.tmdbId, m.mediaType, m.seasons || 1, m.epCounts || null);
-    else document.getElementById('movies').scrollIntoView({ behavior: 'smooth' });
-  };
-  document.getElementById('heroMoreInfo').onclick = () => openLiveModal(m);
-}
 
 async function fetchLiveTitles() {
   try {
@@ -764,9 +811,12 @@ async function fetchLiveTitles() {
       total += titles.length;
     }
 
-    // Update hero with a real trending title
-    const heroCandidate = (data.categories.trending || []).find(t => t.backdrop || t.poster);
-    if (heroCandidate) updateHero(heroCandidate);
+    // Populate hero carousel with top 7 trending titles
+    const heroSlides = (data.categories.trending || [])
+      .filter(t => t.backdrop || t.poster)
+      .slice(0, 7)
+      .map((t, i) => apiToMovie(t, i));
+    if (heroSlides.length) initHeroSlides(heroSlides);
 
     if (total > 0) showToast(`${total} titles loaded from TMDB`);
   } catch (err) {
