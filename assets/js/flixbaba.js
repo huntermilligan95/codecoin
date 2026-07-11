@@ -586,7 +586,8 @@ function apiToMovie(t, i) {
     dur:       '',
     desc:      t.desc  || `Watch "${t.title}" on FlixBaba.`,
     hue:       liveHue(i),
-    poster:    t.poster ? `/api/image?url=${encodeURIComponent(t.poster)}` : '',
+    poster:    t.poster   ? `/api/image?url=${encodeURIComponent(t.poster)}`   : '',
+    backdrop:  t.backdrop ? `/api/image?url=${encodeURIComponent(t.backdrop)}` : '',
     link:      t.link  || 'https://flixbaba.mov',
   };
   // Enrich with accurate season/episode data if the show is in our local list
@@ -710,6 +711,25 @@ function insertLiveRow(titles) {
   showToast(`${titles.length} titles loaded live from FlixBaba`);
 }
 
+function updateHero(raw) {
+  const m = apiToMovie(raw, 0);
+  const bg = document.getElementById('heroBg');
+  const imgUrl = m.backdrop || m.poster;
+  if (imgUrl) bg.style.backgroundImage = `url(${imgUrl})`;
+  document.getElementById('heroTitle').textContent = m.title;
+  document.getElementById('heroDesc').textContent  = m.desc;
+  document.getElementById('heroMeta').innerHTML = `
+    ${m.rating ? `<span class="fb-hero__rating"><i class="fa-solid fa-star"></i> ${m.rating}</span>` : ''}
+    ${m.year   ? `<span>${m.year}</span>` : ''}
+    <span class="fb-hero__genre">${m.genre}</span>
+  `;
+  document.getElementById('heroWatch').onclick = () => {
+    if (m.tmdbId) openPlayer(m.title, m.tmdbId, m.mediaType, m.seasons || 1, m.epCounts || null);
+    else document.getElementById('movies').scrollIntoView({ behavior: 'smooth' });
+  };
+  document.getElementById('heroMoreInfo').onclick = () => openLiveModal(m);
+}
+
 async function fetchLiveTitles() {
   try {
     const res  = await fetch('/api/titles', { signal: AbortSignal.timeout(20000) });
@@ -743,9 +763,14 @@ async function fetchLiveTitles() {
       total += titles.length;
     }
 
+    // Update hero with a real trending title
+    const heroCandidate = (data.categories.trending || []).find(t => t.backdrop || t.poster);
+    if (heroCandidate) updateHero(heroCandidate);
+
     if (total > 0) showToast(`${total} titles loaded from TMDB`);
-  } catch (_) {
-    // Server offline or key not set — keep hardcoded data silently.
+  } catch (err) {
+    showToast('Could not reach catalog server — showing sample data');
+    console.error('fetchLiveTitles:', err);
   }
 }
 
