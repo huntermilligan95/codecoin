@@ -213,7 +213,10 @@ app.use('/fontawesome', express.static(
 app.get('/api/titles', async (req, res) => {
   if (!TMDB_KEY) return res.json({ ok: false, error: 'TMDB_API_KEY not configured', categories: {} });
 
-  const TV_IDS = [1396, 66732, 2316, 1399, 70523, 60059, 87108, 60735, 94997];
+  const TV_IDS = [
+    1396, 66732, 2316, 1399, 70523, 60059, 87108, 60735, 94997,
+    76479, 82856, 71446, 60625, 60574, 119051, 100088, 71912, 44217, 1668,
+  ];
 
   try {
     const [trending, newReleases, action, comedy, scifi, drama, ...tvShows] = await Promise.all([
