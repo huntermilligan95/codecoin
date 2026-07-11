@@ -744,6 +744,7 @@ async function fetchLiveTitles() {
     if (!data.categories) return;
 
     const rowMap = {
+      tvShows:     'rowTvShows',
       trending:    'rowTrending',
       newReleases: 'rowNew',
       action:      'rowAction',

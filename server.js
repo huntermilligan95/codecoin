@@ -184,19 +184,23 @@ app.use('/fontawesome', express.static(
 app.get('/api/titles', async (req, res) => {
   if (!TMDB_KEY) return res.json({ ok: false, error: 'TMDB_API_KEY not configured', categories: {} });
 
+  const TV_IDS = [1396, 66732, 2316, 1399, 70523, 60059, 87108, 60735, 94997];
+
   try {
-    const [trending, newReleases, action, comedy, scifi, drama] = await Promise.all([
+    const [trending, newReleases, action, comedy, scifi, drama, ...tvShows] = await Promise.all([
       tmdb('/trending/all/week'),
       tmdb('/movie/now_playing'),
       tmdb('/discover/movie', { with_genres: 28,  sort_by: 'popularity.desc' }),
       tmdb('/discover/movie', { with_genres: 35,  sort_by: 'popularity.desc' }),
       tmdb('/discover/movie', { with_genres: 878, sort_by: 'popularity.desc' }),
       tmdb('/discover/movie', { with_genres: 18,  sort_by: 'popularity.desc' }),
+      ...TV_IDS.map(id => tmdb(`/tv/${id}`)),
     ]);
 
     res.json({
       ok: true,
       categories: {
+        tvShows:     tvShows.map(mapItem),
         trending:    (trending.results    || []).slice(0, 20).map(mapItem),
         newReleases: (newReleases.results || []).slice(0, 20).map(mapItem),
         action:      (action.results      || []).slice(0, 20).map(mapItem),
