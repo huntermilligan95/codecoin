@@ -715,7 +715,13 @@ async function fetchLiveTitles() {
     const res  = await fetch('/api/titles', { signal: AbortSignal.timeout(20000) });
     if (!res.ok) throw new Error(`Server responded ${res.status}`);
     const data = await res.json();
-    if (!data.ok || !data.categories) return;
+    if (!data.ok) {
+      if (data.error && data.error.includes('TMDB_API_KEY')) {
+        showToast('Add TMDB_API_KEY to Railway to load live titles');
+      }
+      return;
+    }
+    if (!data.categories) return;
 
     const rowMap = {
       trending:    'rowTrending',
