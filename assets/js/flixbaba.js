@@ -648,18 +648,20 @@ function apiToMovie(t, i) {
     year:      t.year  || '',
     rating:    t.rating || '',
     genre:     t.genre || 'Movie',
-    dur:       '',
+    dur:       t.dur || '',
     desc:      t.desc  || `Watch "${t.title}" on ChillFlix.`,
     hue:       liveHue(i),
     poster:    t.poster   ? `/api/image?url=${encodeURIComponent(t.poster)}`   : '',
     backdrop:  t.backdrop ? `/api/image?url=${encodeURIComponent(t.backdrop)}` : '',
     link:      t.link  || 'https://flixbaba.mov',
   };
-  // Enrich with accurate season/episode data if the show is in our local list
+  if (t.seasons) movie.seasons = t.seasons;
+  // Enrich with accurate per-season episode counts if the show is in our local list
   const known = TV_SHOWS.find(s => s.tmdbId === t.id);
   if (known) {
     movie.seasons  = known.seasons;
     movie.epCounts = known.epCounts;
+    if (!movie.dur) movie.dur = known.dur;
   }
   return movie;
 }
@@ -686,6 +688,7 @@ function buildLiveCard(movie) {
       <div class="fb-card__info">
         ${movie.rating ? `<span class="rating"><i class="fa-solid fa-star"></i> ${movie.rating}</span>` : ''}
         ${movie.year   ? `<span>${movie.year}</span>` : ''}
+        ${movie.dur    ? `<span>${movie.dur}</span>` : ''}
       </div>
     </div>
   `;

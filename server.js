@@ -23,11 +23,38 @@ async function tmdb(endpoint, params = {}) {
   return data;
 }
 
+// TMDB genre id → display name (covers both movie and TV genre lists)
+const GENRES = {
+  28: 'Action', 12: 'Adventure', 16: 'Animation', 35: 'Comedy', 80: 'Crime',
+  99: 'Documentary', 18: 'Drama', 10751: 'Family', 14: 'Fantasy', 36: 'History',
+  27: 'Horror', 10402: 'Music', 9648: 'Mystery', 10749: 'Romance', 878: 'Sci-Fi',
+  53: 'Thriller', 10752: 'War', 37: 'Western', 10759: 'Action', 10765: 'Sci-Fi',
+  10768: 'War', 10762: 'Kids', 10764: 'Reality', 10763: 'News', 10766: 'Soap',
+  10767: 'Talk', 10770: 'TV Movie',
+};
+
 // Map a TMDB result to our standard title object
 function mapItem(item) {
   const isTV  = item.media_type === 'tv' || (!item.title && item.name);
   const title = item.title || item.name || '';
   const year  = (item.release_date || item.first_air_date || '').slice(0, 4);
+
+  // Genre: full-detail responses carry genres[]; list responses carry genre_ids[]
+  let genre = isTV ? 'TV Show' : 'Movie';
+  if (Array.isArray(item.genres) && item.genres.length) {
+    genre = item.genres[0].name;
+  } else if (Array.isArray(item.genre_ids) && item.genre_ids.length) {
+    genre = GENRES[item.genre_ids[0]] || genre;
+  }
+
+  // Duration label: seasons for TV, runtime for movies (only present on detail calls)
+  let dur = '';
+  if (isTV && item.number_of_seasons) {
+    dur = `${item.number_of_seasons} Season${item.number_of_seasons > 1 ? 's' : ''}`;
+  } else if (!isTV && item.runtime) {
+    dur = `${Math.floor(item.runtime / 60)}h ${item.runtime % 60}m`;
+  }
+
   return {
     id:        item.id,
     mediaType: isTV ? 'tv' : 'movie',
@@ -36,7 +63,9 @@ function mapItem(item) {
     rating: item.vote_average ? item.vote_average.toFixed(1) : '',
     poster:   item.poster_path   ? `${IMG}${item.poster_path}` : '',
     backdrop: item.backdrop_path ? `https://image.tmdb.org/t/p/w1280${item.backdrop_path}` : '',
-    genre:  isTV ? 'TV Show' : 'Movie',
+    genre,
+    dur,
+    seasons: item.number_of_seasons || undefined,
     desc:   item.overview || '',
     link:   `${ORIGIN}/search?q=${encodeURIComponent(title)}`,
   };

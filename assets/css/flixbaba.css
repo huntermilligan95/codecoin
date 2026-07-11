@@ -405,8 +405,8 @@ button {
 
 .fb-hero__dots {
   position: absolute;
-  bottom: 52px;
-  left: 64px;
+  bottom: 90px;
+  right: 64px;
   display: flex;
   gap: 7px;
   z-index: 10;
