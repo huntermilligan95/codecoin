@@ -479,13 +479,13 @@ function initSearch() {
     if (activeCtrl) activeCtrl.abort();
     activeCtrl = new AbortController();
 
-    header.textContent = `Searching FlixBaba for "${q}"…`;
+    header.textContent = `Searching ChillFlix for "${q}"…`;
     overlay.classList.add('open');
     noResults.classList.remove('visible');
     grid.innerHTML = `
       <div class="fb-search-loading">
         <div class="fb-player__spinner"></div>
-        <span>Searching FlixBaba catalog…</span>
+        <span>Searching ChillFlix catalog…</span>
       </div>`;
 
     try {
@@ -584,7 +584,7 @@ function apiToMovie(t, i) {
     rating:    t.rating || '',
     genre:     t.genre || 'Movie',
     dur:       '',
-    desc:      t.desc  || `Watch "${t.title}" on FlixBaba.`,
+    desc:      t.desc  || `Watch "${t.title}" on ChillFlix.`,
     hue:       liveHue(i),
     poster:    t.poster   ? `/api/image?url=${encodeURIComponent(t.poster)}`   : '',
     backdrop:  t.backdrop ? `/api/image?url=${encodeURIComponent(t.backdrop)}` : '',
@@ -679,7 +679,7 @@ function insertLiveRow(titles) {
     <div class="fb-row__header">
       <h2 class="fb-row__title">
         <i class="fa-solid fa-satellite-dish" style="color:#22d3ee"></i>
-        Live from FlixBaba
+        Live from ChillFlix
         <span style="font-size:.65rem;font-weight:400;color:#9090b0;margin-left:8px">${titles.length} titles</span>
       </h2>
       <a href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-row__see-all">
@@ -708,7 +708,7 @@ function insertLiveRow(titles) {
   wrap.querySelector('.fb-row__arrow--left').addEventListener('click',  () => track.scrollBy({ left: -600, behavior: 'smooth' }));
   wrap.querySelector('.fb-row__arrow--right').addEventListener('click', () => track.scrollBy({ left:  600, behavior: 'smooth' }));
 
-  showToast(`${titles.length} titles loaded live from FlixBaba`);
+  showToast(`${titles.length} titles loaded live from ChillFlix`);
 }
 
 function updateHero(raw) {

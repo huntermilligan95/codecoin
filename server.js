@@ -375,6 +375,6 @@ app.get('/proxy', async (req, res) => {
 
 // ── Start ────────────────────────────────────────────────
 app.listen(PORT, () => {
-  console.log(`\nFlixBaba mirror running at http://localhost:${PORT}`);
+  console.log(`\nChillFlix running at http://localhost:${PORT}`);
   console.log(`Open your browser:  http://localhost:${PORT}/flixbaba.html\n`);
 });
