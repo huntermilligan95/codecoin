@@ -202,13 +202,22 @@ function showHeroSlide(idx) {
   if (!_heroSlides.length) return;
   _heroIdx = ((idx % _heroSlides.length) + _heroSlides.length) % _heroSlides.length;
   const m = _heroSlides[_heroIdx];
+  const imgUrl = m.backdrop || m.poster;
 
+  // Crossfade background layers (no black gap — images are preloaded)
+  if (imgUrl) {
+    const layers = [document.getElementById('heroBg'), document.getElementById('heroBgB')];
+    const next = _heroLayer ^ 1;
+    layers[next].style.backgroundImage = `url(${imgUrl})`;
+    layers[next].classList.add('is-active');
+    layers[_heroLayer].classList.remove('is-active');
+    _heroLayer = next;
+  }
+
+  // Crossfade text content
   const content = document.querySelector('.fb-hero__content');
   content.classList.add('fb-fade');
-
   setTimeout(() => {
-    const bg = document.getElementById('heroBg');
-    if (m.backdrop || m.poster) bg.style.backgroundImage = `url(${m.backdrop || m.poster})`;
     document.getElementById('heroTitle').textContent = m.title;
     document.getElementById('heroDesc').textContent  = m.desc;
     document.getElementById('heroMeta').innerHTML = `
@@ -222,7 +231,7 @@ function showHeroSlide(idx) {
     };
     document.getElementById('heroMoreInfo').onclick = () => openLiveModal(m);
     content.classList.remove('fb-fade');
-  }, 300);
+  }, 250);
 
   document.querySelectorAll('.fb-hero__dot').forEach((dot, i) => {
     dot.classList.toggle('fb-hero__dot--active', i === _heroIdx);
@@ -236,6 +245,8 @@ function startHeroTimer() {
 
 function initHeroSlides(slides) {
   _heroSlides = slides;
+  // Preload every slide image so crossfades never flash black
+  slides.forEach(s => { const img = new Image(); img.src = s.backdrop || s.poster; });
   const dotsEl = document.getElementById('heroDots');
   dotsEl.innerHTML = '';
   slides.forEach((_, i) => {
@@ -278,6 +289,7 @@ function initHero() {
 let _heroSlides = [];
 let _heroIdx    = 0;
 let _heroTimer  = null;
+let _heroLayer  = 0;   // which bg layer (0 = heroBg, 1 = heroBgB) is active
 
 // ── Player / Server Picker ───────────────────────────────
 let _playerCtx = null;  // { tmdbId, mediaType, season, episode, seasons, epCounts }

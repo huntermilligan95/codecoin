@@ -92,6 +92,19 @@ button {
   color: #fff;
   box-shadow: 0 4px 20px rgba(139,92,246,0.4);
 }
+.fb-btn--play:hover {
+  transform: translateY(-2px);
+  opacity: 1;
+  box-shadow: 0 8px 28px rgba(139,92,246,0.6);
+}
+
+/* Keyboard accessibility: visible focus ring on interactive elements */
+a:focus-visible,
+button:focus-visible,
+input:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
 .fb-btn--info {
   background: rgba(255,255,255,0.12);
   color: var(--text);
@@ -144,6 +157,7 @@ button {
   justify-content: space-between;
   padding: 0 32px;
   gap: 24px;
+  background: linear-gradient(to bottom, rgba(0,0,0,0.55) 0%, transparent 100%);
   transition: background var(--transition), box-shadow var(--transition);
 }
 .fb-nav.scrolled {
@@ -196,19 +210,27 @@ button {
 .fb-search__input {
   width: 0;
   overflow: hidden;
-  border: none;
-  border-bottom: 1px solid var(--accent);
+  border: 1px solid transparent;
+  border-radius: 8px;
   background: transparent;
   color: var(--text);
   font-size: 0.9rem;
-  padding: 4px 0;
-  transition: width 300ms ease, opacity 300ms ease;
+  padding: 0;
+  transition: width 300ms ease, opacity 300ms ease, background 200ms ease, border-color 200ms ease;
   opacity: 0;
   outline: none;
 }
 .fb-search__input.open {
-  width: 200px;
+  width: 220px;
   opacity: 1;
+  padding: 8px 12px;
+  background: rgba(12,12,20,0.92);
+  border-color: var(--border);
+  backdrop-filter: blur(8px);
+}
+.fb-search__input.open:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px rgba(139,92,246,0.25);
 }
 .fb-search__input::placeholder { color: var(--muted); }
 
@@ -285,8 +307,10 @@ button {
   background-position: center top;
   background-repeat: no-repeat;
   transform: scale(1.04);
-  transition: background-image 800ms ease;
+  opacity: 0;
+  transition: opacity 900ms ease;
 }
+.fb-hero__bg.is-active { opacity: 1; }
 
 .fb-hero__overlay {
   position: absolute;
@@ -413,12 +437,13 @@ button {
 }
 .fb-hero__dot {
   width: 28px;
-  height: 3px;
+  height: 4px;
   border-radius: 2px;
-  background: rgba(255,255,255,.35);
+  background: rgba(255,255,255,.4);
   border: none;
   cursor: pointer;
   padding: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,.5);
   transition: background .25s, width .25s;
 }
 .fb-hero__dot--active {
