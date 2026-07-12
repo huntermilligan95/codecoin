@@ -310,7 +310,17 @@ input:focus-visible {
   opacity: 0;
   transition: opacity 900ms ease;
 }
-.fb-hero__bg.is-active { opacity: 1; }
+.fb-hero__bg.is-active {
+  opacity: 1;
+  animation: heroKenBurns 8s ease-out forwards;
+}
+@keyframes heroKenBurns {
+  from { transform: scale(1.0); }
+  to   { transform: scale(1.09); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fb-hero__bg.is-active { animation: none; }
+}
 
 .fb-hero__overlay {
   position: absolute;
@@ -540,6 +550,7 @@ input:focus-visible {
   padding: 8px 4px 16px;
   scroll-behavior: smooth;
   scrollbar-width: none;
+  scroll-snap-type: x mandatory;
 }
 .fb-row__track::-webkit-scrollbar { display: none; }
 
@@ -552,12 +563,28 @@ input:focus-visible {
   cursor: pointer;
   position: relative;
   background: var(--card);
+  scroll-snap-align: start;
   transition: transform 250ms ease, box-shadow 250ms ease;
 }
 .fb-card:hover {
   transform: scale(1.07) translateY(-4px);
   box-shadow: 0 16px 40px rgba(0,0,0,0.6);
   z-index: 5;
+}
+
+/* ── Skeleton loading card ───────────────────────────────── */
+.fb-card--skeleton {
+  cursor: default;
+  pointer-events: none;
+}
+.fb-card--skeleton .fb-card__poster {
+  background: linear-gradient(100deg, var(--card) 30%, var(--card-hover) 50%, var(--card) 70%);
+  background-size: 200% 100%;
+  animation: skeletonShimmer 1.4s ease-in-out infinite;
+}
+@keyframes skeletonShimmer {
+  0%   { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
 }
 
 .fb-card__poster {

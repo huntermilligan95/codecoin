@@ -171,17 +171,52 @@ function buildCard(movie) {
 function renderRow(trackId, movies) {
   const track = document.getElementById(trackId);
   if (!track) return;
+  track.innerHTML = '';
   movies.forEach(m => track.appendChild(buildCard(m)));
 }
 
+// Fallback data used only if the live TMDB fetch fails for a given row
+const FALLBACK_ROWS = {
+  tvShows:     TV_SHOWS,
+  trending:    MOVIES.trending,
+  newReleases: MOVIES.newReleases,
+  action:      MOVIES.action,
+  comedy:      MOVIES.comedy,
+  scifi:       MOVIES.scifi,
+  drama:       MOVIES.drama,
+};
+
 function initRows() {
-  renderRow('rowTvShows', TV_SHOWS);
-  renderRow('rowTrending', MOVIES.trending);
-  renderRow('rowNew',      MOVIES.newReleases);
-  renderRow('rowAction',   MOVIES.action);
-  renderRow('rowComedy',   MOVIES.comedy);
-  renderRow('rowScifi',    MOVIES.scifi);
-  renderRow('rowDrama',    MOVIES.drama);
+  Object.entries(FALLBACK_ROWS).forEach(([key, movies]) => {
+    const trackId = key === 'tvShows' ? 'rowTvShows'
+      : key === 'trending' ? 'rowTrending'
+      : key === 'newReleases' ? 'rowNew'
+      : key === 'action' ? 'rowAction'
+      : key === 'comedy' ? 'rowComedy'
+      : key === 'scifi' ? 'rowScifi'
+      : 'rowDrama';
+    renderRow(trackId, movies);
+  });
+}
+
+// ── Skeleton loading cards ───────────────────────────────
+function buildSkeletonCard() {
+  const card = document.createElement('div');
+  card.className = 'fb-card fb-card--skeleton';
+  card.innerHTML = `<div class="fb-card__poster" style="aspect-ratio:2/3"></div>`;
+  return card;
+}
+
+function renderSkeletonRow(trackId, count = 8) {
+  const track = document.getElementById(trackId);
+  if (!track) return;
+  track.innerHTML = '';
+  for (let i = 0; i < count; i++) track.appendChild(buildSkeletonCard());
+}
+
+function renderSkeletonRows() {
+  ['rowTvShows', 'rowTrending', 'rowNew', 'rowAction', 'rowComedy', 'rowScifi', 'rowDrama']
+    .forEach(id => renderSkeletonRow(id));
 }
 
 // ── Row Scrolling ────────────────────────────────────────
@@ -189,10 +224,10 @@ function initRowArrows() {
   document.querySelectorAll('.fb-row__track-wrap').forEach(wrap => {
     const track = wrap.querySelector('.fb-row__track');
     wrap.querySelector('.fb-row__arrow--left').addEventListener('click', () => {
-      track.scrollBy({ left: -600, behavior: 'smooth' });
+      track.scrollBy({ left: -track.clientWidth * 0.9, behavior: 'smooth' });
     });
     wrap.querySelector('.fb-row__arrow--right').addEventListener('click', () => {
-      track.scrollBy({ left: 600, behavior: 'smooth' });
+      track.scrollBy({ left: track.clientWidth * 0.9, behavior: 'smooth' });
     });
   });
 }
@@ -208,8 +243,12 @@ function showHeroSlide(idx) {
   if (imgUrl) {
     const layers = [document.getElementById('heroBg'), document.getElementById('heroBgB')];
     const next = _heroLayer ^ 1;
-    layers[next].style.backgroundImage = `url(${imgUrl})`;
-    layers[next].classList.add('is-active');
+    const nextEl = layers[next];
+    nextEl.style.backgroundImage = `url(${imgUrl})`;
+    // Restart the Ken Burns zoom animation on every slide by forcing a reflow
+    nextEl.classList.remove('is-active');
+    void nextEl.offsetWidth;
+    nextEl.classList.add('is-active');
     layers[_heroLayer].classList.remove('is-active');
     _heroLayer = next;
   }
@@ -226,7 +265,8 @@ function showHeroSlide(idx) {
       <span class="fb-hero__genre">${m.genre}</span>
     `;
     document.getElementById('heroWatch').onclick = () => {
-      if (m.tmdbId) openPlayer(m.title, m.tmdbId, m.mediaType, m.seasons || 1, m.epCounts || null);
+      if (m.tmdbId) openPlayer(m.title, m.tmdbId, m.mediaType, m.seasons || 1, m.epCounts || null,
+        { poster: m.poster, backdrop: m.backdrop, genre: m.genre, rating: m.rating, year: m.year, dur: m.dur });
       else document.getElementById('movies').scrollIntoView({ behavior: 'smooth' });
     };
     document.getElementById('heroMoreInfo').onclick = () => openLiveModal(m);
@@ -368,6 +408,7 @@ function buildEpPanel() {
       buildEpPanel();
       updateEpToggle();
       loadServer(_activeServer);
+      recordContinueWatching();
     });
     seasonsEl.appendChild(btn);
   }
@@ -389,6 +430,7 @@ function buildEpPanel() {
       closeEpPanel();
       updateEpToggle();
       loadServer(_activeServer);
+      recordContinueWatching();
     });
     epsEl.appendChild(btn);
   }
@@ -413,17 +455,107 @@ function toggleEpPanel() {
   }
 }
 
-function openPlayer(title, tmdbId, mediaType, seasons, epCounts) {
+// ── Continue Watching (localStorage) ─────────────────────
+const CW_KEY = 'fbContinueWatching';
+
+function loadContinueWatching() {
+  try { return JSON.parse(localStorage.getItem(CW_KEY) || '[]'); } catch { return []; }
+}
+
+function saveContinueWatchingEntry(entry) {
+  const list = loadContinueWatching()
+    .filter(e => !(e.tmdbId === entry.tmdbId && e.mediaType === entry.mediaType));
+  list.unshift(entry);
+  localStorage.setItem(CW_KEY, JSON.stringify(list.slice(0, 20)));
+  renderContinueWatchingRow();
+}
+
+function recordContinueWatching() {
+  if (!_playerCtx) return;
+  const meta = _playerCtx.meta || {};
+  saveContinueWatchingEntry({
+    tmdbId:    _playerCtx.tmdbId,
+    mediaType: _playerCtx.mediaType,
+    title:     document.getElementById('playerTitle').textContent,
+    poster:    meta.poster   || '',
+    backdrop:  meta.backdrop || '',
+    genre:     meta.genre    || (_playerCtx.mediaType === 'tv' ? 'TV Show' : 'Movie'),
+    rating:    meta.rating   || '',
+    year:      meta.year     || '',
+    dur:       meta.dur      || '',
+    seasons:   _playerCtx.seasons,
+    epCounts:  _playerCtx.epCounts,
+    season:    _playerCtx.season,
+    episode:   _playerCtx.episode,
+    ts:        Date.now(),
+  });
+}
+
+function buildContinueCard(entry) {
+  const card = document.createElement('div');
+  card.className = 'fb-card';
+  const img = entry.poster || entry.backdrop;
+  const posterHtml = img
+    ? `<img class="fb-card__poster" src="${img}" alt="${entry.title}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    : '';
+
+  card.innerHTML = `
+    ${posterHtml}
+    <div class="fb-card__poster-placeholder" style="background:${posterGradient(liveHue(0))};${img ? 'display:none' : ''}">
+      <i class="fa-solid ${posterIcon(entry.genre)}" style="font-size:2rem;opacity:.6;color:#fff"></i>
+      <span style="color:rgba(255,255,255,.75);font-size:.72rem;line-height:1.3">${entry.title}</span>
+    </div>
+    <span class="fb-card__genre-tag">${entry.genre || ''}</span>
+    <div class="fb-card__overlay">
+      <div class="fb-card__play"><i class="fa-solid fa-play" style="margin-left:2px"></i></div>
+      <div class="fb-card__title">${entry.title}</div>
+      <div class="fb-card__info">
+        ${entry.mediaType === 'tv' ? `<span>S${entry.season} · E${entry.episode}</span>` : (entry.year ? `<span>${entry.year}</span>` : '')}
+      </div>
+    </div>
+  `;
+
+  card.addEventListener('click', () => {
+    openPlayer(
+      entry.title, entry.tmdbId, entry.mediaType, entry.seasons, entry.epCounts,
+      { poster: entry.poster, backdrop: entry.backdrop, genre: entry.genre, rating: entry.rating, year: entry.year, dur: entry.dur },
+      entry.season, entry.episode,
+    );
+  });
+
+  return card;
+}
+
+function renderContinueWatchingRow() {
+  const section = document.getElementById('rowContinueSection');
+  const track   = document.getElementById('rowContinue');
+  if (!section || !track) return;
+  const list = loadContinueWatching();
+  track.innerHTML = '';
+  if (!list.length) { section.style.display = 'none'; return; }
+  section.style.display = '';
+  list.forEach(entry => track.appendChild(buildContinueCard(entry)));
+}
+
+function openPlayer(title, tmdbId, mediaType, seasons, epCounts, meta, startSeason, startEpisode) {
   const player  = document.getElementById('fbPlayer');
   const extLink = document.getElementById('playerExternal');
   document.getElementById('playerTitle').textContent = title;
   extLink.href = `https://vidsrc.to/embed/${mediaType === 'tv' ? 'tv' : 'movie'}/${tmdbId}`;
-  _playerCtx = { tmdbId, mediaType, season: 1, episode: 1, seasons: seasons || 1, epCounts: epCounts || null };
+  _playerCtx = {
+    tmdbId, mediaType,
+    season:  startSeason  || 1,
+    episode: startEpisode || 1,
+    seasons: seasons || 1,
+    epCounts: epCounts || null,
+    meta: meta || {},
+  };
   player.classList.add('open');
   document.body.style.overflow = 'hidden';
   closeEpPanel();
   updateEpToggle();
   loadServer(1);
+  recordContinueWatching();
 }
 
 function closePlayer() {
@@ -496,7 +628,8 @@ function openModal(id) {
     watchBtn.onclick = (e) => {
       e.preventDefault();
       closeModal();
-      openPlayer(m.title, m.tmdbId, m.type === 'tv' ? 'tv' : 'movie', m.seasons, m.epCounts);
+      openPlayer(m.title, m.tmdbId, m.type === 'tv' ? 'tv' : 'movie', m.seasons, m.epCounts,
+        { genre: m.genre, rating: m.rating, year: m.year, dur: m.dur });
     };
   } else {
     watchBtn.onclick = (e) => {
@@ -734,7 +867,8 @@ function openLiveModal(movie) {
     e.preventDefault();
     closeModal();
     if (movie.tmdbId) {
-      openPlayer(movie.title, movie.tmdbId, movie.mediaType, movie.seasons || 1, movie.epCounts);
+      openPlayer(movie.title, movie.tmdbId, movie.mediaType, movie.seasons || 1, movie.epCounts,
+        { poster: movie.poster, backdrop: movie.backdrop, genre: movie.genre, rating: movie.rating, year: movie.year, dur: movie.dur });
     } else {
       showToast('Streaming not available for this title');
     }
@@ -802,9 +936,10 @@ async function fetchLiveTitles() {
       if (data.error && data.error.includes('TMDB_API_KEY')) {
         showToast('Add TMDB_API_KEY to Railway to load live titles');
       }
+      initRows(); // clear skeletons, fall back to sample catalog
       return;
     }
-    if (!data.categories) return;
+    if (!data.categories) { initRows(); return; }
 
     const rowMap = {
       tvShows:     'rowTvShows',
@@ -818,13 +953,17 @@ async function fetchLiveTitles() {
 
     let total = 0;
     for (const [key, trackId] of Object.entries(rowMap)) {
-      const titles = data.categories[key] || [];
-      if (!titles.length) continue;
       const track = document.getElementById(trackId);
       if (!track) continue;
-      track.innerHTML = '';
-      titles.forEach((t, i) => track.appendChild(buildLiveCard(apiToMovie(t, i))));
-      total += titles.length;
+      const titles = data.categories[key] || [];
+      if (titles.length) {
+        track.innerHTML = '';
+        titles.forEach((t, i) => track.appendChild(buildLiveCard(apiToMovie(t, i))));
+        total += titles.length;
+      } else {
+        // This category came back empty — fall back to sample data for this row only
+        renderRow(trackId, FALLBACK_ROWS[key] || []);
+      }
     }
 
     // Populate hero carousel with top 7 trending titles
@@ -838,18 +977,20 @@ async function fetchLiveTitles() {
   } catch (err) {
     showToast('Could not reach catalog server — showing sample data');
     console.error('fetchLiveTitles:', err);
+    initRows(); // clear skeletons, fall back to sample catalog
   }
 }
 
 // ── Boot ─────────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
   initHero();
-  initRows();
+  renderSkeletonRows();
   initRowArrows();
   initModal();
   initSearch();
   initNavScroll();
   initMyListLink();
   initPlayer();
-  fetchLiveTitles();  // attempt live data; fails silently if server is offline
+  renderContinueWatchingRow();
+  fetchLiveTitles();  // attempt live data; falls back to sample catalog if server is offline
 });
