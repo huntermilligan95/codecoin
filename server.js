@@ -33,6 +33,14 @@ const GENRES = {
   10767: 'Talk', 10770: 'TV Movie',
 };
 
+// A title is "released" if its release/air date is today or earlier.
+// Undated items are kept (rare in trending/now_playing; usually old catalog).
+function isReleased(item) {
+  const date = item.release_date || item.first_air_date || '';
+  if (!date) return true;
+  return date <= new Date().toISOString().slice(0, 10); // YYYY-MM-DD string compare
+}
+
 // Map a TMDB result to our standard title object
 function mapItem(item) {
   const isTV  = item.media_type === 'tv' || (!item.title && item.name);
@@ -232,13 +240,13 @@ app.get('/api/titles', async (req, res) => {
     res.json({
       ok: true,
       categories: {
-        tvShows:     tvShows.map(mapItem),
-        trending:    (trending.results    || []).slice(0, 20).map(mapItem),
-        newReleases: (newReleases.results || []).slice(0, 20).map(mapItem),
-        action:      (action.results      || []).slice(0, 20).map(mapItem),
-        comedy:      (comedy.results      || []).slice(0, 20).map(mapItem),
-        scifi:       (scifi.results       || []).slice(0, 20).map(mapItem),
-        drama:       (drama.results       || []).slice(0, 20).map(mapItem),
+        tvShows:     tvShows.filter(isReleased).map(mapItem),
+        trending:    (trending.results    || []).filter(isReleased).slice(0, 20).map(mapItem),
+        newReleases: (newReleases.results || []).filter(isReleased).slice(0, 20).map(mapItem),
+        action:      (action.results      || []).filter(isReleased).slice(0, 20).map(mapItem),
+        comedy:      (comedy.results      || []).filter(isReleased).slice(0, 20).map(mapItem),
+        scifi:       (scifi.results       || []).filter(isReleased).slice(0, 20).map(mapItem),
+        drama:       (drama.results       || []).filter(isReleased).slice(0, 20).map(mapItem),
       },
     });
   } catch (err) {
@@ -257,6 +265,7 @@ app.get('/api/search', async (req, res) => {
     const data   = await tmdb('/search/multi', { query: q, include_adult: false, page: 1 });
     const titles = (data.results || [])
       .filter(r => r.media_type !== 'person' && (r.title || r.name))
+      .filter(isReleased)
       .map(mapItem);
     res.json({ ok: true, count: titles.length, titles });
   } catch (err) {
