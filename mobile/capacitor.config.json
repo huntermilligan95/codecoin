@@ -1,0 +1,12 @@
+{
+  "appId": "dev.hunterclaw.chillflix",
+  "appName": "ChillFlix",
+  "webDir": "www",
+  "server": {
+    "url": "https://chillflix.hunterclaw.dev",
+    "cleartext": false
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
