@@ -1273,4 +1273,24 @@ input:focus-visible {
   .fb-btn--visit span { display: none; }
   .fb-search__input.open { width: 140px; }
   .fb-modal__title { font-size: 1.4rem; }
+
+  /* ── Player bar: pack controls so nothing overflows on a phone ── */
+  .fb-player__bar        { padding: 0 10px; gap: 8px; }
+  .fb-player__bar-title  { min-width: 0; font-size: 0.82rem; }  /* min-width:0 lets it truncate */
+  .fb-player__srv-label  { display: none; }                     /* drop the "Server" word */
+  .fb-player__ext-btn    { display: none; }                     /* external link is redundant in-app */
+  #playerSlowHint        { display: none !important; }          /* beats JS inline display:inline */
+  .fb-player__servers    { gap: 4px; }
+  .fb-player__srv        { width: 27px !important; height: 26px !important; font-size: 0.72rem !important; }
+  .fb-player__bar button { width: 32px; height: 32px; font-size: 0.95rem; }
+  .fb-ep__toggle         { padding: 5px 9px; font-size: 0.72rem; gap: 4px; }
+
+  /* Give the video as much height as possible; hint stays compact */
+  .fb-player__unmute-hint { top: 10px; padding: 7px 12px; }
+}
+
+/* Landscape phones: the video is the whole point — keep chrome minimal */
+@media (max-width: 900px) and (orientation: landscape) {
+  .fb-player__bar { height: 44px; }
+  .fb-ep-panel    { top: 44px; }
 }
