@@ -335,16 +335,24 @@ let _heroLayer  = 0;   // which bg layer (0 = heroBg, 1 = heroBgB) is active
 let _playerCtx = null;  // { tmdbId, mediaType, season, episode, seasons, epCounts }
 let _activeServer = 1;
 
+// Every server points at a multi-source aggregator that renders its own
+// in-player source dropdown (the "SERVERS" list on multiembed/superembed —
+// vipstream, GDrive, doodstream, streamwish, etc.). Because each player is a
+// cross-origin iframe, that dropdown is the provider's own UI; we can't inject
+// ours, so instead each slot is a provider that has one. Server 1 is multiembed
+// (the richest list) as the default.
 function embedUrl(mediaType, tmdbId, server, season, episode) {
-  const type = mediaType === 'tv' ? 'tv' : 'movie';
-  const se   = type === 'tv' ? `/${season}/${episode}` : '';
+  const type    = mediaType === 'tv' ? 'tv' : 'movie';
+  const se      = type === 'tv' ? `/${season}/${episode}` : '';
+  const seQuery = type === 'tv' ? `&season=${season}&episode=${episode}` : '';
+  const multiembed = `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1${type === 'tv' ? `&s=${season}&e=${episode}` : ''}`;
   switch (server) {
-    case 1: return `https://player.videasy.net/${type}/${tmdbId}${se}`;
-    case 2: return `https://vidsrc.to/embed/${type}/${tmdbId}${se}`;
-    case 3: return `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1${type === 'tv' ? `&s=${season}&e=${episode}` : ''}`;
-    case 4: return `https://vidsrc.cc/v2/embed/${type}?tmdb=${tmdbId}${type === 'tv' ? `&season=${season}&episode=${episode}` : ''}`;
-    case 5: return `https://embed.su/embed/${type}/${tmdbId}${se}`;
-    default: return `https://player.videasy.net/${type}/${tmdbId}${se}`;
+    case 1: return multiembed;                                              // superembed — richest source dropdown
+    case 2: return `https://vidsrc.to/embed/${type}/${tmdbId}${se}`;         // vidsrc.to server list
+    case 3: return `https://vidsrc.xyz/embed/${type}?tmdb=${tmdbId}${seQuery}`; // vidsrc.xyz server list
+    case 4: return `https://vidsrc.cc/v2/embed/${type}?tmdb=${tmdbId}${seQuery}`; // vidsrc.cc server tabs
+    case 5: return `https://embed.su/embed/${type}/${tmdbId}${se}`;          // embed.su server tabs
+    default: return multiembed;
   }
 }
 
@@ -551,7 +559,7 @@ function openPlayer(title, tmdbId, mediaType, seasons, epCounts, meta, startSeas
   const player  = document.getElementById('fbPlayer');
   const extLink = document.getElementById('playerExternal');
   document.getElementById('playerTitle').textContent = title;
-  extLink.href = `https://vidsrc.to/embed/${mediaType === 'tv' ? 'tv' : 'movie'}/${tmdbId}`;
+  extLink.href = `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1`;
   _playerCtx = {
     tmdbId, mediaType,
     season:  startSeason  || 1,
