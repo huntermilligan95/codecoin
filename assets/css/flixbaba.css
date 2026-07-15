@@ -1215,6 +1215,46 @@ input:focus-visible {
   display: block;
 }
 
+/* Auto-mute hint — overlays the top of the video briefly after load.
+   pointer-events:none so taps pass straight through to the player. */
+.fb-player__unmute-hint {
+  position: absolute;
+  top: 16px;
+  left: 50%;
+  transform: translateX(-50%) translateY(-8px);
+  z-index: 3;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  max-width: calc(100% - 32px);
+  padding: 9px 16px;
+  border-radius: 99px;
+  background: rgba(15,15,26,0.9);
+  border: 1px solid rgba(139,92,246,0.45);
+  color: #f0f0f8;
+  font-size: 0.8rem;
+  font-weight: 500;
+  line-height: 1.2;
+  white-space: nowrap;
+  box-shadow: 0 6px 24px rgba(0,0,0,0.55);
+  backdrop-filter: blur(8px);
+  pointer-events: none;
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 350ms ease, transform 350ms ease, visibility 350ms;
+}
+.fb-player__unmute-hint.show {
+  opacity: 1;
+  visibility: visible;
+  transform: translateX(-50%) translateY(0);
+}
+.fb-player__unmute-hint > .fa-volume-high { color: var(--accent); font-size: 0.95rem; }
+.fb-player__unmute-hint .fa-volume-xmark { color: #f59e0b; }
+
+@media (max-width: 600px) {
+  .fb-player__unmute-hint { font-size: 0.7rem; white-space: normal; text-align: center; }
+}
+
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 900px) {
   .fb-nav { padding: 0 20px; gap: 16px; }

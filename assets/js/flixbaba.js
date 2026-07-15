@@ -354,9 +354,13 @@ function loadServer(n) {
   const frame   = document.getElementById('playerFrame');
   const loading = document.getElementById('playerLoading');
   const hint    = document.getElementById('playerSlowHint');
+  const unmute  = document.getElementById('playerUnmuteHint');
 
   if (loadServer._timer) clearTimeout(loadServer._timer);
+  if (loadServer._unmuteShow) clearTimeout(loadServer._unmuteShow);
+  if (loadServer._unmuteHide) clearTimeout(loadServer._unmuteHide);
   if (hint) hint.style.display = 'none';
+  if (unmute) unmute.classList.remove('show');
 
   document.querySelectorAll('.fb-player__srv').forEach(b => {
     b.classList.toggle('fb-player__srv--active', +b.dataset.srv === n);
@@ -369,6 +373,12 @@ function loadServer(n) {
     loadServer._timer = setTimeout(() => {
       if (hint) hint.style.display = 'inline';
     }, 12000);
+    // Browsers autoplay video only if muted — surface an unmute hint once the
+    // player shell has had a moment to start, then auto-dismiss it.
+    if (unmute) {
+      loadServer._unmuteShow = setTimeout(() => unmute.classList.add('show'), 2000);
+      loadServer._unmuteHide = setTimeout(() => unmute.classList.remove('show'), 10000);
+    }
   };
   loadServer._timer = setTimeout(() => { loading.style.display = 'none'; }, 15000);
   frame.src = embedUrl(_playerCtx.mediaType, _playerCtx.tmdbId, n, _playerCtx.season, _playerCtx.episode);
@@ -566,6 +576,11 @@ function closePlayer() {
   document.body.style.overflow = '';
   _playerCtx = null;
   closeEpPanel();
+  if (loadServer._timer)      clearTimeout(loadServer._timer);
+  if (loadServer._unmuteShow) clearTimeout(loadServer._unmuteShow);
+  if (loadServer._unmuteHide) clearTimeout(loadServer._unmuteHide);
+  const unmute = document.getElementById('playerUnmuteHint');
+  if (unmute) unmute.classList.remove('show');
 }
 
 function initPlayer() {
