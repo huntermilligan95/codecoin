@@ -1,7 +1,7 @@
 {
-  "name": "flixbaba-mirror",
+  "name": "chillflix",
   "version": "1.0.0",
-  "description": "URL mirror for flixbaba.mov with ad stripping and title scraping",
+  "description": "ChillFlix — TMDB-powered streaming catalog with in-app playback",
   "main": "server.js",
   "engines": {
     "node": ">=20"

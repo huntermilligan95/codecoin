@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ChillFlix - Stream Unlimited Movies & Shows</title>
-  <link rel="stylesheet" href="./assets/css/flixbaba.css?v=13">
+  <link rel="stylesheet" href="./assets/css/flixbaba.css?v=14">
   <link rel="stylesheet" href="/fontawesome/css/all.min.css">
 </head>
 <body>
@@ -29,10 +29,6 @@
         </button>
         <input type="text" class="fb-search__input" id="searchInput" placeholder="Titles, genres…">
       </div>
-      <a href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-btn fb-btn--visit">
-        <i class="fa-solid fa-arrow-up-right-from-square"></i>
-        Visit ChillFlix
-      </a>
     </div>
   </nav>
 
@@ -95,7 +91,7 @@
     <section class="fb-row" id="tvshows">
       <div class="fb-row__header">
         <h2 class="fb-row__title"><i class="fa-solid fa-tv" style="color:#8b5cf6"></i> TV Shows</h2>
-        <a href="https://flixbaba.mov/tv/popular" target="_blank" rel="noopener" class="fb-row__see-all">See all on FlixBaba <i class="fa-solid fa-arrow-right"></i></a>
+        <button class="fb-row__see-all" data-cat="tvShows">See all <i class="fa-solid fa-arrow-right"></i></button>
       </div>
       <div class="fb-row__track-wrap">
         <button class="fb-row__arrow fb-row__arrow--left" aria-label="Scroll left"><i class="fa-solid fa-chevron-left"></i></button>
@@ -107,7 +103,7 @@
     <section class="fb-row" id="trending">
       <div class="fb-row__header">
         <h2 class="fb-row__title"><i class="fa-solid fa-fire fb-icon--fire"></i> Trending Now</h2>
-        <a href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-row__see-all">See all on FlixBaba <i class="fa-solid fa-arrow-right"></i></a>
+        <button class="fb-row__see-all" data-cat="trending">See all <i class="fa-solid fa-arrow-right"></i></button>
       </div>
       <div class="fb-row__track-wrap">
         <button class="fb-row__arrow fb-row__arrow--left" aria-label="Scroll left"><i class="fa-solid fa-chevron-left"></i></button>
@@ -119,7 +115,7 @@
     <section class="fb-row">
       <div class="fb-row__header">
         <h2 class="fb-row__title"><i class="fa-solid fa-bolt fb-icon--new"></i> New Releases</h2>
-        <a href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-row__see-all">See all on FlixBaba <i class="fa-solid fa-arrow-right"></i></a>
+        <button class="fb-row__see-all" data-cat="newReleases">See all <i class="fa-solid fa-arrow-right"></i></button>
       </div>
       <div class="fb-row__track-wrap">
         <button class="fb-row__arrow fb-row__arrow--left" aria-label="Scroll left"><i class="fa-solid fa-chevron-left"></i></button>
@@ -131,7 +127,7 @@
     <section class="fb-row">
       <div class="fb-row__header">
         <h2 class="fb-row__title"><i class="fa-solid fa-explosion fb-icon--action"></i> Action & Thriller</h2>
-        <a href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-row__see-all">See all on FlixBaba <i class="fa-solid fa-arrow-right"></i></a>
+        <button class="fb-row__see-all" data-cat="action">See all <i class="fa-solid fa-arrow-right"></i></button>
       </div>
       <div class="fb-row__track-wrap">
         <button class="fb-row__arrow fb-row__arrow--left" aria-label="Scroll left"><i class="fa-solid fa-chevron-left"></i></button>
@@ -143,7 +139,7 @@
     <section class="fb-row">
       <div class="fb-row__header">
         <h2 class="fb-row__title"><i class="fa-solid fa-face-laugh fb-icon--comedy"></i> Comedy</h2>
-        <a href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-row__see-all">See all on FlixBaba <i class="fa-solid fa-arrow-right"></i></a>
+        <button class="fb-row__see-all" data-cat="comedy">See all <i class="fa-solid fa-arrow-right"></i></button>
       </div>
       <div class="fb-row__track-wrap">
         <button class="fb-row__arrow fb-row__arrow--left" aria-label="Scroll left"><i class="fa-solid fa-chevron-left"></i></button>
@@ -155,7 +151,7 @@
     <section class="fb-row">
       <div class="fb-row__header">
         <h2 class="fb-row__title"><i class="fa-solid fa-rocket fb-icon--scifi"></i> Sci-Fi & Fantasy</h2>
-        <a href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-row__see-all">See all on FlixBaba <i class="fa-solid fa-arrow-right"></i></a>
+        <button class="fb-row__see-all" data-cat="scifi">See all <i class="fa-solid fa-arrow-right"></i></button>
       </div>
       <div class="fb-row__track-wrap">
         <button class="fb-row__arrow fb-row__arrow--left" aria-label="Scroll left"><i class="fa-solid fa-chevron-left"></i></button>
@@ -167,7 +163,7 @@
     <section class="fb-row">
       <div class="fb-row__header">
         <h2 class="fb-row__title"><i class="fa-solid fa-masks-theater fb-icon--drama"></i> Drama</h2>
-        <a href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-row__see-all">See all on FlixBaba <i class="fa-solid fa-arrow-right"></i></a>
+        <button class="fb-row__see-all" data-cat="drama">See all <i class="fa-solid fa-arrow-right"></i></button>
       </div>
       <div class="fb-row__track-wrap">
         <button class="fb-row__arrow fb-row__arrow--left" aria-label="Scroll left"><i class="fa-solid fa-chevron-left"></i></button>
@@ -178,29 +174,20 @@
 
   </main>
 
-  <!-- Mirror Banner -->
-  <div class="fb-mirror-banner">
-    <div class="fb-mirror-banner__content">
-      <i class="fa-solid fa-link"></i>
-      <span>This is an official mirror of <strong>flixbaba.mov</strong>. All content is sourced from the original site.</span>
-      <a href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-btn fb-btn--outline">Go to Original</a>
-    </div>
-  </div>
-
   <!-- Footer -->
   <footer class="fb-footer">
     <div class="fb-footer__inner">
       <div class="fb-footer__brand">
         <span class="fb-logo"><span class="fb-logo__flix">Chill</span><span class="fb-logo__baba">Flix</span></span>
-        <p>A mirror of <a href="https://flixbaba.mov" target="_blank" rel="noopener">flixbaba.mov</a> — your ultimate streaming destination.</p>
+        <p>Stream unlimited movies &amp; TV shows.</p>
       </div>
       <div class="fb-footer__links">
         <div>
           <h4>Browse</h4>
           <a href="#trending">Trending</a>
           <a href="#movies">Movies</a>
-          <a href="https://flixbaba.mov" target="_blank" rel="noopener">TV Shows</a>
-          <a href="https://flixbaba.mov" target="_blank" rel="noopener">My List</a>
+          <a href="#tvshows">TV Shows</a>
+          <a href="#" id="footerMyList">My List</a>
         </div>
         <div>
           <h4>Genres</h4>
@@ -209,16 +196,10 @@
           <a href="#rowScifi">Sci-Fi</a>
           <a href="#rowDrama">Drama</a>
         </div>
-        <div>
-          <h4>Support</h4>
-          <a href="https://flixbaba.mov" target="_blank" rel="noopener">Help Center</a>
-          <a href="https://flixbaba.mov" target="_blank" rel="noopener">Account</a>
-          <a href="https://flixbaba.mov" target="_blank" rel="noopener">Contact</a>
-        </div>
       </div>
     </div>
     <div class="fb-footer__bottom">
-      <p>&copy; 2024 FlixBaba Mirror &mdash; All rights belong to <a href="https://flixbaba.mov" target="_blank" rel="noopener">flixbaba.mov</a></p>
+      <p>&copy; 2026 ChillFlix</p>
     </div>
   </footer>
 
@@ -274,9 +255,6 @@
           <span id="epToggleLabel">S1 · E1</span>
           <i class="fa-solid fa-chevron-down fb-ep__toggle-caret"></i>
         </button>
-        <a id="playerExternal" href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-player__ext-btn" title="Open on FlixBaba">
-          <i class="fa-solid fa-arrow-up-right-from-square"></i>
-        </a>
         <button id="closePlayer" title="Close player"><i class="fa-solid fa-xmark"></i></button>
       </div>
     </div>
@@ -304,6 +282,6 @@
     </div>
   </div>
 
-  <script src="./assets/js/flixbaba.js?v=32"></script>
+  <script src="./assets/js/flixbaba.js?v=33"></script>
 </body>
 </html>

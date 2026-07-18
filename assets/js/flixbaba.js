@@ -557,9 +557,7 @@ function renderContinueWatchingRow() {
 
 function openPlayer(title, tmdbId, mediaType, seasons, epCounts, meta, startSeason, startEpisode) {
   const player  = document.getElementById('fbPlayer');
-  const extLink = document.getElementById('playerExternal');
   document.getElementById('playerTitle').textContent = title;
-  extLink.href = `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1`;
   _playerCtx = {
     tmdbId, mediaType,
     season:  startSeason  || 1,
@@ -707,6 +705,7 @@ function initSearch() {
   async function performSearch(q) {
     if (q === lastQuery) return;
     lastQuery = q;
+    _browseCat = null; // a real search takes over the overlay from genre browsing
 
     // Cancel any previous in-flight request
     if (activeCtrl) activeCtrl.abort();
@@ -729,7 +728,7 @@ function initSearch() {
       grid.innerHTML = '';
 
       if (data.ok && data.titles && data.titles.length > 0) {
-        header.textContent = `${data.titles.length} result${data.titles.length !== 1 ? 's' : ''} for "${q}" on FlixBaba`;
+        header.textContent = `${data.titles.length} result${data.titles.length !== 1 ? 's' : ''} for "${q}"`;
         data.titles.forEach((t, i) => grid.appendChild(buildLiveCard(apiToMovie(t, i))));
       } else if (!data.ok && data.error && data.error.includes('TMDB_API_KEY')) {
         header.textContent = `Search unavailable — TMDB_API_KEY not set on server`;
@@ -763,11 +762,97 @@ function initSearch() {
     input.classList.remove('open');
     input.value = '';
     lastQuery = '';
+    _browseCat = null;
   });
 
   function closeSearchOverlay() {
     overlay.classList.remove('open');
   }
+}
+
+// ── Genre "See all" browse (in-app, paginated TMDB) ──────
+function openBrowse(cat) {
+  if (!BROWSE_TITLES[cat]) return;
+  _browseCat   = cat;
+  _browsePage  = 0;
+  _browseTotal = 1;
+  _browseCount = 0;
+
+  const overlay   = document.getElementById('searchOverlay');
+  const grid      = document.getElementById('searchResults');
+  const noResults = document.getElementById('noResults');
+  const header    = document.querySelector('.fb-search-overlay__header span');
+
+  grid.innerHTML = '';
+  noResults.classList.remove('visible');
+  header.textContent = BROWSE_TITLES[cat];
+  overlay.classList.add('open');
+
+  loadBrowsePage();
+}
+
+async function loadBrowsePage() {
+  if (!_browseCat || _browseLoading || _browsePage >= _browseTotal) return;
+  _browseLoading = true;
+
+  const grid   = document.getElementById('searchResults');
+  const header = document.querySelector('.fb-search-overlay__header span');
+  const nextPage = _browsePage + 1;
+
+  const sentinel = document.createElement('div');
+  sentinel.className = 'fb-browse-loading';
+  sentinel.innerHTML = '<div class="fb-player__spinner"></div>';
+  grid.appendChild(sentinel);
+
+  try {
+    const res  = await fetch(`/api/browse?cat=${encodeURIComponent(_browseCat)}&page=${nextPage}`, {
+      signal: AbortSignal.timeout(20000),
+    });
+    const data = await res.json();
+    sentinel.remove();
+
+    // Overlay may have been closed or switched to a different category mid-fetch
+    if (_browseCat === null) return;
+
+    if (!data.ok) {
+      if (data.error && data.error.includes('TMDB_API_KEY')) {
+        header.textContent = `${BROWSE_TITLES[_browseCat]} — TMDB_API_KEY not set on server`;
+      }
+      _browseTotal = _browsePage || 1; // stop further loads
+      return;
+    }
+
+    _browsePage  = nextPage;
+    _browseTotal = data.totalPages || 1;
+
+    if (!data.titles.length && _browseCount === 0) {
+      document.getElementById('noResults').classList.add('visible');
+      return;
+    }
+
+    data.titles.forEach(t => grid.appendChild(buildLiveCard(apiToMovie(t, _browseCount++))));
+  } catch (err) {
+    sentinel.remove();
+    if (err.name !== 'AbortError') console.error('loadBrowsePage:', err);
+  } finally {
+    _browseLoading = false;
+  }
+}
+
+function initBrowse() {
+  document.querySelectorAll('.fb-row__see-all[data-cat]').forEach(btn => {
+    btn.addEventListener('click', () => openBrowse(btn.dataset.cat));
+  });
+
+  // Infinite scroll: load the next page once the user nears the bottom,
+  // but only while a genre browse (not search or My List) is active.
+  document.getElementById('searchOverlay').addEventListener('scroll', e => {
+    if (!_browseCat) return;
+    const el = e.target;
+    if (el.scrollTop + el.clientHeight >= el.scrollHeight - 400) {
+      loadBrowsePage();
+    }
+  });
 }
 
 // ── Navbar scroll effect ─────────────────────────────────
@@ -781,26 +866,47 @@ function initNavScroll() {
 }
 
 // ── My List nav link ─────────────────────────────────────
-function initMyListLink() {
-  document.getElementById('myListLink').addEventListener('click', e => {
-    e.preventDefault();
-    if (myList.length === 0) { showToast('Your list is empty — add some movies!'); return; }
-    const grid = document.getElementById('searchResults');
-    const overlay = document.getElementById('searchOverlay');
-    const noResults = document.getElementById('noResults');
-    grid.innerHTML = '';
-    overlay.classList.add('open');
-    noResults.classList.remove('visible');
-    myList.map(findById).filter(Boolean).forEach(m => grid.appendChild(buildCard(m)));
-    document.querySelector('.fb-search-overlay__header span').textContent = 'My List';
-  });
+function openMyListOverlay(e) {
+  e.preventDefault();
+  if (myList.length === 0) { showToast('Your list is empty — add some movies!'); return; }
+  _browseCat = null; // stop any in-progress genre-browse infinite scroll
+  const grid = document.getElementById('searchResults');
+  const overlay = document.getElementById('searchOverlay');
+  const noResults = document.getElementById('noResults');
+  grid.innerHTML = '';
+  overlay.classList.add('open');
+  noResults.classList.remove('visible');
+  myList.map(findById).filter(Boolean).forEach(m => grid.appendChild(buildCard(m)));
+  document.querySelector('.fb-search-overlay__header span').textContent = 'My List';
 }
 
-// ── Live data from proxy server ──────────────────────────
-// Titles fetched from the Node.js backend (which scrapes flixbaba.mov).
+function initMyListLink() {
+  document.getElementById('myListLink').addEventListener('click', openMyListOverlay);
+  const footerLink = document.getElementById('footerMyList');
+  if (footerLink) footerLink.addEventListener('click', openMyListOverlay);
+}
+
+// ── Live data from the TMDB-backed API ────────────────────
+// Titles fetched from the Node.js backend, which proxies TMDB directly.
 // Falls back gracefully to the hardcoded MOVIES data if the server is offline.
 
 let LIVE_TITLES = [];  // populated after fetch
+
+// ── Genre "See all" browse (in-app, paginated) ───────────
+const BROWSE_TITLES = {
+  tvShows:     'TV Shows',
+  trending:    'Trending Now',
+  newReleases: 'New Releases',
+  action:      'Action & Thriller',
+  comedy:      'Comedy',
+  scifi:       'Sci-Fi & Fantasy',
+  drama:       'Drama',
+};
+let _browseCat     = null;  // active category key, or null when not browsing
+let _browsePage    = 0;
+let _browseTotal   = 1;
+let _browseLoading = false;
+let _browseCount   = 0;     // running count for unique card ids/hues across pages
 
 function liveHue(i) {
   const hues = ['260,70%','340,65%','150,55%','220,65%','30,75%','190,60%','270,60%','10,65%'];
@@ -821,7 +927,6 @@ function apiToMovie(t, i) {
     hue:       liveHue(i),
     poster:    t.poster   ? `/api/image?url=${encodeURIComponent(t.poster)}`   : '',
     backdrop:  t.backdrop ? `/api/image?url=${encodeURIComponent(t.backdrop)}` : '',
-    link:      t.link  || 'https://flixbaba.mov',
   };
   if (t.seasons) movie.seasons = t.seasons;
   // Enrich with accurate per-season episode counts if the show is in our local list
@@ -906,49 +1011,6 @@ function openLiveModal(movie) {
   document.body.style.overflow = 'hidden';
 }
 
-function insertLiveRow(titles) {
-  if (!titles.length) return;
-
-  const main = document.getElementById('movies');
-  const section = document.createElement('section');
-  section.className = 'fb-row';
-  section.id = 'rowLive';
-  section.innerHTML = `
-    <div class="fb-row__header">
-      <h2 class="fb-row__title">
-        <i class="fa-solid fa-satellite-dish" style="color:#22d3ee"></i>
-        Live from ChillFlix
-        <span style="font-size:.65rem;font-weight:400;color:#9090b0;margin-left:8px">${titles.length} titles</span>
-      </h2>
-      <a href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-row__see-all">
-        Browse all <i class="fa-solid fa-arrow-right"></i>
-      </a>
-    </div>
-    <div class="fb-row__track-wrap">
-      <button class="fb-row__arrow fb-row__arrow--left" aria-label="Scroll left"><i class="fa-solid fa-chevron-left"></i></button>
-      <div class="fb-row__track" id="rowLiveTrack"></div>
-      <button class="fb-row__arrow fb-row__arrow--right" aria-label="Scroll right"><i class="fa-solid fa-chevron-right"></i></button>
-    </div>
-  `;
-
-  // Insert before the first existing row so it appears at the top
-  main.insertBefore(section, main.firstElementChild);
-
-  const track = section.querySelector('#rowLiveTrack');
-  titles.forEach((t, i) => {
-    const movie = apiToMovie(t, i);
-    LIVE_TITLES.push(movie);
-    track.appendChild(buildLiveCard(movie));
-  });
-
-  // Wire up the arrow buttons for this new row
-  const wrap = section.querySelector('.fb-row__track-wrap');
-  wrap.querySelector('.fb-row__arrow--left').addEventListener('click',  () => track.scrollBy({ left: -600, behavior: 'smooth' }));
-  wrap.querySelector('.fb-row__arrow--right').addEventListener('click', () => track.scrollBy({ left:  600, behavior: 'smooth' }));
-
-  showToast(`${titles.length} titles loaded live from ChillFlix`);
-}
-
 
 async function fetchLiveTitles() {
   try {
@@ -1011,6 +1073,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initRowArrows();
   initModal();
   initSearch();
+  initBrowse();
   initNavScroll();
   initMyListLink();
   initPlayer();

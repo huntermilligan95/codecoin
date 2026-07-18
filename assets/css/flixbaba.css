@@ -1,5 +1,5 @@
 /* =========================================================
-   FlixBaba — Netflix/Hulu-style streaming mirror UI
+   ChillFlix — Netflix/Hulu-style streaming UI
    ========================================================= */
 
 *, *::before, *::after {
@@ -287,6 +287,15 @@ input:focus-visible {
   padding: 60px 0;
   color: var(--muted);
   font-size: 0.9rem;
+}
+
+/* Infinite-scroll sentinel for genre browse pagination */
+.fb-browse-loading {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 0;
 }
 
 /* ── Hero ───────────────────────────────────────────────── */

@@ -75,7 +75,6 @@ function mapItem(item) {
     dur,
     seasons: item.number_of_seasons || undefined,
     desc:   item.overview || '',
-    link:   `${ORIGIN}/search?q=${encodeURIComponent(title)}`,
   };
 }
 
@@ -251,6 +250,39 @@ app.get('/api/titles', async (req, res) => {
     });
   } catch (err) {
     res.status(502).json({ ok: false, error: err.message });
+  }
+});
+
+// ── API: paginated genre/category browse ("See all") ─────
+const BROWSE = {
+  trending:    { path: '/trending/all/week' },
+  newReleases: { path: '/movie/now_playing' },
+  action:      { path: '/discover/movie', params: { with_genres: 28,  sort_by: 'popularity.desc' } },
+  comedy:      { path: '/discover/movie', params: { with_genres: 35,  sort_by: 'popularity.desc' } },
+  scifi:       { path: '/discover/movie', params: { with_genres: 878, sort_by: 'popularity.desc' } },
+  drama:       { path: '/discover/movie', params: { with_genres: 18,  sort_by: 'popularity.desc' } },
+  tvShows:     { path: '/discover/tv',    params: { sort_by: 'popularity.desc' } },
+};
+
+app.get('/api/browse', async (req, res) => {
+  if (!TMDB_KEY) return res.json({ ok: false, error: 'TMDB_API_KEY not configured', titles: [] });
+
+  const conf = BROWSE[req.query.cat];
+  if (!conf) return res.status(400).json({ ok: false, error: 'Unknown category', titles: [] });
+
+  const page = Math.min(Math.max(parseInt(req.query.page, 10) || 1, 1), 500);
+
+  try {
+    const data = await tmdb(conf.path, { ...(conf.params || {}), page });
+    const titles = (data.results || []).filter(isReleased).map(mapItem);
+    res.json({
+      ok: true,
+      page,
+      totalPages: Math.min(data.total_pages || 1, 500),
+      titles,
+    });
+  } catch (err) {
+    res.status(502).json({ ok: false, error: err.message, titles: [] });
   }
 });
 
