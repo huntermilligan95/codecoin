@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ChillFlix - Stream Unlimited Movies & Shows</title>
-  <link rel="stylesheet" href="./assets/css/flixbaba.css?v=14">
+  <link rel="stylesheet" href="./assets/css/flixbaba.css?v=15">
   <link rel="stylesheet" href="/fontawesome/css/all.min.css">
 </head>
 <body>
@@ -273,8 +273,9 @@
         <div class="fb-player__spinner"></div>
         <p>Loading from ChillFlix…</p>
       </div>
-      <iframe class="fb-player__frame" id="playerFrame" src="" allowfullscreen
-        allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>
+      <iframe class="fb-player__frame" id="playerFrame" src=""
+        allowfullscreen webkitallowfullscreen mozallowfullscreen
+        allow="autoplay; fullscreen *; picture-in-picture; encrypted-media"></iframe>
       <div class="fb-player__unmute-hint" id="playerUnmuteHint">
         <i class="fa-solid fa-volume-high"></i>
         <span>No sound? Tap the player, then its <i class="fa-solid fa-volume-xmark"></i> icon to unmute</span>
