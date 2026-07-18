@@ -818,7 +818,7 @@ async function loadBrowsePage() {
       if (data.error && data.error.includes('TMDB_API_KEY')) {
         header.textContent = `${BROWSE_TITLES[_browseCat]} — TMDB_API_KEY not set on server`;
       }
-      _browseTotal = _browsePage || 1; // stop further loads
+      _browseTotal = _browsePage; // stop further loads (0 if the very first page failed)
       return;
     }
 
@@ -831,11 +831,47 @@ async function loadBrowsePage() {
     }
 
     data.titles.forEach(t => grid.appendChild(buildLiveCard(apiToMovie(t, _browseCount++))));
+
+    // Some pages come back thinner than TMDB's nominal ~20 (unreleased
+    // titles get filtered server-side), so a page can render without
+    // producing enough content to overflow the overlay — which means the
+    // scroll listener below would never fire and loading would silently
+    // stall. Keep fetching automatically until there's either nothing left
+    // or enough on screen for the user to actually scroll.
+    requestAnimationFrame(() => {
+      const overlay = document.getElementById('searchOverlay');
+      if (_browseCat && _browsePage < _browseTotal && overlay.scrollHeight <= overlay.clientHeight + 20) {
+        loadBrowsePage();
+      }
+    });
   } catch (err) {
     sentinel.remove();
     if (err.name !== 'AbortError') console.error('loadBrowsePage:', err);
   } finally {
     _browseLoading = false;
+    ensureLoadMoreButton();
+  }
+}
+
+// Manual fallback alongside infinite scroll — keeps "See all" reachable on
+// inputs where scroll events don't fire reliably (TV remotes, some touch
+// devices), and gives a visible affordance instead of relying purely on
+// the user guessing they should keep scrolling.
+function ensureLoadMoreButton() {
+  const grid = document.getElementById('searchResults');
+  let btn = document.getElementById('browseLoadMoreBtn');
+
+  if (_browseCat && _browsePage < _browseTotal && !_browseLoading) {
+    if (!btn) {
+      btn = document.createElement('button');
+      btn.id = 'browseLoadMoreBtn';
+      btn.className = 'fb-browse-loadmore';
+      btn.textContent = 'Load More';
+      btn.addEventListener('click', () => loadBrowsePage());
+    }
+    grid.appendChild(btn); // (re)appending moves it to the end, after new cards
+  } else if (btn) {
+    btn.remove();
   }
 }
 
