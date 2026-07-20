@@ -340,18 +340,20 @@ let _activeServer = 1;
 // vipstream, GDrive, doodstream, streamwish, etc.). Because each player is a
 // cross-origin iframe, that dropdown is the provider's own UI; we can't inject
 // ours, so instead each slot is a provider that has one. Server 1 is multiembed
-// (the richest list) as the default.
+// (the richest list) as the default. Servers 3-5 were vidsrc.xyz/vidsrc.cc/
+// embed.su, but all three went unreachable (dead domain, 403, dead domain) —
+// replaced with vidlink.pro, 2embed.cc, and 111movies.com, each confirmed
+// reachable at the actual embed URL (not just the bare domain).
 function embedUrl(mediaType, tmdbId, server, season, episode) {
   const type    = mediaType === 'tv' ? 'tv' : 'movie';
   const se      = type === 'tv' ? `/${season}/${episode}` : '';
-  const seQuery = type === 'tv' ? `&season=${season}&episode=${episode}` : '';
   const multiembed = `https://multiembed.mov/?video_id=${tmdbId}&tmdb=1${type === 'tv' ? `&s=${season}&e=${episode}` : ''}`;
   switch (server) {
-    case 1: return multiembed;                                              // superembed — richest source dropdown
-    case 2: return `https://vidsrc.to/embed/${type}/${tmdbId}${se}`;         // vidsrc.to server list
-    case 3: return `https://vidsrc.xyz/embed/${type}?tmdb=${tmdbId}${seQuery}`; // vidsrc.xyz server list
-    case 4: return `https://vidsrc.cc/v2/embed/${type}?tmdb=${tmdbId}${seQuery}`; // vidsrc.cc server tabs
-    case 5: return `https://embed.su/embed/${type}/${tmdbId}${se}`;          // embed.su server tabs
+    case 1: return multiembed;                                                                 // superembed — richest source dropdown
+    case 2: return `https://vidsrc.to/embed/${type}/${tmdbId}${se}`;                             // vidsrc.to server list
+    case 3: return `https://vidlink.pro/${type}/${tmdbId}${se}`;                                 // vidlink.pro
+    case 4: return `https://www.2embed.cc/embed${type === 'tv' ? 'tv' : ''}/${tmdbId}${type === 'tv' ? `&s=${season}&e=${episode}` : ''}`; // 2embed.cc (TV uses &s=&e=, no ?, per their scheme)
+    case 5: return `https://111movies.com/${type}/${tmdbId}${se}`;                               // 111movies.com
     default: return multiembed;
   }
 }
