@@ -358,6 +358,23 @@ function embedUrl(mediaType, tmdbId, server, season, episode) {
   }
 }
 
+// AirPlay screen-mirroring shows whatever is literally on screen. Since we
+// never natively fullscreen (our "fullscreen" is just a CSS overlay), a
+// mirrored AirPlay picture would include Safari's own chrome plus our title
+// bar around the video instead of a clean, TV-shaped image. Proactively
+// requesting true native fullscreen on the iframe as soon as it loads means
+// the user doesn't have to separately find the embed provider's own
+// fullscreen button first for AirPlay to look right.
+function requestPlayerFullscreen() {
+  const frame = document.getElementById('playerFrame');
+  const req = frame.requestFullscreen || frame.webkitRequestFullscreen || frame.mozRequestFullScreen;
+  if (!req) return;
+  try {
+    const p = req.call(frame);
+    if (p && p.catch) p.catch(() => {}); // silently ignore if blocked/unsupported
+  } catch (_) { /* ignore */ }
+}
+
 function loadServer(n) {
   if (!_playerCtx) return;
   _activeServer = n;
@@ -380,6 +397,7 @@ function loadServer(n) {
   frame.onload = () => {
     clearTimeout(loadServer._timer);
     loading.style.display = 'none';
+    requestPlayerFullscreen();
     loadServer._timer = setTimeout(() => {
       if (hint) hint.style.display = 'inline';
     }, 12000);
@@ -589,6 +607,10 @@ function closePlayer() {
   if (loadServer._unmuteHide) clearTimeout(loadServer._unmuteHide);
   const unmute = document.getElementById('playerUnmuteHint');
   if (unmute) unmute.classList.remove('show');
+  const exitFs = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen;
+  if (exitFs && (document.fullscreenElement || document.webkitFullscreenElement)) {
+    try { exitFs.call(document); } catch (_) { /* ignore */ }
+  }
 }
 
 function initPlayer() {
