@@ -362,15 +362,23 @@ function embedUrl(mediaType, tmdbId, server, season, episode) {
 // never natively fullscreen (our "fullscreen" is just a CSS overlay), a
 // mirrored AirPlay picture would include Safari's own chrome plus our title
 // bar around the video instead of a clean, TV-shaped image. Proactively
-// requesting true native fullscreen on the iframe as soon as it loads means
-// the user doesn't have to separately find the embed provider's own
-// fullscreen button first for AirPlay to look right.
+// requesting true native fullscreen as soon as the video loads means the
+// user doesn't have to separately find the embed provider's own fullscreen
+// button first for AirPlay to look right.
+//
+// IMPORTANT: fullscreen the *outer player container* (#fbPlayer), not the
+// iframe alone. The season/episode toggle, the episode panel, the server
+// switcher, and the close button are all siblings of the iframe -- if only
+// the iframe goes fullscreen, the browser hides everything outside it,
+// making those controls completely unreachable (this broke the episode
+// picker on at least one TV browser). Fullscreening the container keeps the
+// whole player -- bar, panel, and video -- inside the fullscreen boundary.
 function requestPlayerFullscreen() {
-  const frame = document.getElementById('playerFrame');
-  const req = frame.requestFullscreen || frame.webkitRequestFullscreen || frame.mozRequestFullScreen;
+  const container = document.getElementById('fbPlayer');
+  const req = container.requestFullscreen || container.webkitRequestFullscreen || container.mozRequestFullScreen;
   if (!req) return;
   try {
-    const p = req.call(frame);
+    const p = req.call(container);
     if (p && p.catch) p.catch(() => {}); // silently ignore if blocked/unsupported
   } catch (_) { /* ignore */ }
 }
