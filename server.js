@@ -253,6 +253,33 @@ app.get('/api/titles', async (req, res) => {
   }
 });
 
+// ── API: real season/episode counts for a single TV show ─
+// TMDB's list-style endpoints (discover, trending, search) don't include
+// number_of_seasons -- that only exists on the /tv/{id} detail endpoint.
+// Any show discovered outside the curated TV_IDS list (browse, trending,
+// search) therefore has no season data client-side; this lets the player
+// fetch the real breakdown on demand once a title is actually opened.
+app.get('/api/tv-seasons', async (req, res) => {
+  if (!TMDB_KEY) return res.json({ ok: false, error: 'TMDB_API_KEY not configured' });
+
+  const id = parseInt(req.query.id, 10);
+  if (!id) return res.status(400).json({ ok: false, error: 'Missing id param' });
+
+  try {
+    const data = await tmdb(`/tv/${id}`);
+    const seasons = (data.seasons || [])
+      .filter(s => s.season_number > 0) // drop "Specials" (season 0)
+      .sort((a, b) => a.season_number - b.season_number);
+    res.json({
+      ok: true,
+      seasons: seasons.length,
+      epCounts: seasons.map(s => s.episode_count || 20),
+    });
+  } catch (err) {
+    res.status(502).json({ ok: false, error: err.message });
+  }
+});
+
 // ── API: paginated genre/category browse ("See all") ─────
 const BROWSE = {
   trending:    { path: '/trending/all/week' },

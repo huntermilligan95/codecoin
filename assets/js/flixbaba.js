@@ -575,6 +575,26 @@ function renderContinueWatchingRow() {
   list.forEach(entry => track.appendChild(buildContinueCard(entry)));
 }
 
+// TMDB's list-style endpoints (discover, trending, search) don't include
+// number_of_seasons, so any TV show discovered outside the curated home-row
+// list arrives here with no real season data and would otherwise default to
+// a single season. Fetches the real breakdown from /api/tv-seasons and
+// hydrates it into the already-open player once it resolves, without
+// blocking playback from starting immediately.
+async function hydrateSeasonData(tmdbId) {
+  try {
+    const res  = await fetch(`/api/tv-seasons?id=${tmdbId}`, { signal: AbortSignal.timeout(15000) });
+    const data = await res.json();
+    if (!data.ok || !data.seasons) return;
+    // Player may have been closed or switched to a different title by now
+    if (!_playerCtx || _playerCtx.tmdbId !== tmdbId || _playerCtx.mediaType !== 'tv') return;
+    _playerCtx.seasons  = data.seasons;
+    _playerCtx.epCounts = data.epCounts;
+    updateEpToggle();
+    if (document.getElementById('epPanel').classList.contains('open')) buildEpPanel();
+  } catch (_) { /* keep whatever default we already had */ }
+}
+
 function openPlayer(title, tmdbId, mediaType, seasons, epCounts, meta, startSeason, startEpisode) {
   const player  = document.getElementById('fbPlayer');
   document.getElementById('playerTitle').textContent = title;
@@ -592,6 +612,7 @@ function openPlayer(title, tmdbId, mediaType, seasons, epCounts, meta, startSeas
   updateEpToggle();
   loadServer(1);
   recordContinueWatching();
+  if (mediaType === 'tv' && !epCounts) hydrateSeasonData(tmdbId);
 }
 
 function closePlayer() {
