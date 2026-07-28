@@ -2,9 +2,13 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#0f0f1a">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="FlixBaba">
   <title>FlixBaba - Stream Unlimited Movies & Shows</title>
-  <link rel="stylesheet" href="./assets/css/flixbaba.css?v=6">
+  <link rel="stylesheet" href="./assets/css/flixbaba.css?v=7">
   <link rel="stylesheet" href="/fontawesome/css/all.min.css">
 </head>
 <body>
@@ -259,6 +263,9 @@
           <span id="epToggleLabel">S1 · E1</span>
           <i class="fa-solid fa-chevron-down fb-ep__toggle-caret"></i>
         </button>
+        <button id="playerFullscreen" title="Toggle fullscreen">
+          <i class="fa-solid fa-expand" id="playerFullscreenIcon"></i>
+        </button>
         <a id="playerExternal" href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-player__ext-btn" title="Open on FlixBaba">
           <i class="fa-solid fa-arrow-up-right-from-square"></i>
         </a>
@@ -285,6 +292,6 @@
     </div>
   </div>
 
-  <script src="./assets/js/flixbaba.js?v=20"></script>
+  <script src="./assets/js/flixbaba.js?v=21"></script>
 </body>
 </html>

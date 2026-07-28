@@ -1108,6 +1108,44 @@ button {
   display: block;
 }
 
+/* ── Fullscreen / AirPlay-friendly player layout ────────── */
+.fb-player:fullscreen,
+.fb-player:-webkit-full-screen,
+.fb-player:-moz-full-screen {
+  display: flex !important;
+  flex-direction: column;
+  background: #000;
+  width: 100vw;
+  height: 100vh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right)
+           env(safe-area-inset-bottom) env(safe-area-inset-left);
+}
+
+.fb-player:fullscreen .fb-player__content,
+.fb-player:-webkit-full-screen .fb-player__content,
+.fb-player:-moz-full-screen .fb-player__content {
+  flex: 1;
+  min-height: 0;
+}
+
+.fb-player:fullscreen .fb-player__frame,
+.fb-player:-webkit-full-screen .fb-player__frame,
+.fb-player:-moz-full-screen .fb-player__frame {
+  width: 100%;
+  height: 100%;
+}
+
+/* Landscape lock helper: hide browser chrome on mobile */
+@media (orientation: landscape) and (max-height: 500px) {
+  .fb-player.open .fb-player__bar {
+    height: 44px;
+    padding: 0 12px;
+  }
+  .fb-player.open .fb-player__bar-title {
+    font-size: 0.85rem;
+  }
+}
+
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 900px) {
   .fb-nav { padding: 0 20px; gap: 16px; }

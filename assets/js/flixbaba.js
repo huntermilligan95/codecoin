@@ -336,6 +336,53 @@ function toggleEpPanel() {
   }
 }
 
+function isTouchDevice() {
+  return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+}
+
+async function enterPlayerFullscreen() {
+  const player = document.getElementById('fbPlayer');
+  if (!player || document.fullscreenElement) return;
+  try {
+    const req = player.requestFullscreen || player.webkitRequestFullscreen || player.mozRequestFullScreen || player.msRequestFullscreen;
+    if (req) await req.call(player);
+  } catch (_) { /* ignore fullscreen denial */ }
+}
+
+async function exitPlayerFullscreen() {
+  if (!document.fullscreenElement) return;
+  try {
+    const exit = document.exitFullscreen || document.webkitExitFullscreen || document.mozCancelFullScreen || document.msExitFullscreen;
+    if (exit) await exit.call(document);
+  } catch (_) { /* ignore */ }
+}
+
+async function lockLandscape() {
+  if (!screen.orientation || !screen.orientation.lock) return;
+  try { await screen.orientation.lock('landscape'); } catch (_) { /* ignore unsupported/locked */ }
+}
+
+function unlockOrientation() {
+  if (!screen.orientation || !screen.orientation.unlock) return;
+  try { screen.orientation.unlock(); } catch (_) { /* ignore */ }
+}
+
+function updateFullscreenIcon() {
+  const icon = document.getElementById('playerFullscreenIcon');
+  if (!icon) return;
+  icon.className = document.fullscreenElement
+    ? 'fa-solid fa-compress'
+    : 'fa-solid fa-expand';
+}
+
+async function togglePlayerFullscreen() {
+  if (document.fullscreenElement) {
+    await exitPlayerFullscreen();
+  } else {
+    await enterPlayerFullscreen();
+  }
+}
+
 function openPlayer(title, tmdbId, mediaType, seasons, epCounts) {
   const player  = document.getElementById('fbPlayer');
   const extLink = document.getElementById('playerExternal');
@@ -347,6 +394,13 @@ function openPlayer(title, tmdbId, mediaType, seasons, epCounts) {
   closeEpPanel();
   updateEpToggle();
   loadServer(1);
+
+  // On phones/tablets, immediately go fullscreen + landscape so AirPlay mirroring
+  // fills as much of the TV as the source device aspect ratio allows.
+  if (isTouchDevice()) {
+    enterPlayerFullscreen();
+    lockLandscape();
+  }
 }
 
 function closePlayer() {
@@ -357,10 +411,16 @@ function closePlayer() {
   document.body.style.overflow = '';
   _playerCtx = null;
   closeEpPanel();
+  unlockOrientation();
+  exitPlayerFullscreen();
 }
 
 function initPlayer() {
   document.getElementById('closePlayer').addEventListener('click', closePlayer);
+  const fsBtn = document.getElementById('playerFullscreen');
+  if (fsBtn) fsBtn.addEventListener('click', togglePlayerFullscreen);
+  document.addEventListener('fullscreenchange', updateFullscreenIcon);
+  document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
   document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePlayer(); closeEpPanel(); } });
   document.querySelectorAll('.fb-player__srv').forEach(btn => {
     btn.addEventListener('click', () => loadServer(+btn.dataset.srv));
