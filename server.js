@@ -160,7 +160,7 @@ async function fetchPage(url) {
   return data;
 }
 
-// ── Health check (used by Railway) ───────────────────────
+// ── Health check (used by Render) ────────────────────────
 app.get('/health', (_, res) => res.json({ ok: true }));
 
 // ── Redirect old /flixbaba.html URL to root ──────────────
