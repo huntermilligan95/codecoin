@@ -74,9 +74,22 @@ const TV_SHOWS = [
 ];
 
 // ── State ────────────────────────────────────────────────
-let myList = JSON.parse(localStorage.getItem('fbMyList') || '[]');
+let myList = (() => {
+  try {
+    const parsed = JSON.parse(localStorage.getItem('fbMyList') || '[]');
+    return Array.isArray(parsed) ? parsed : [];
+  } catch (_) {
+    return [];
+  }
+})();
 
 // ── Helpers ──────────────────────────────────────────────
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
+
 function posterGradient(hue) {
   const [h, sl] = hue.split(',');
   return `linear-gradient(160deg, hsl(${h},${sl},22%) 0%, hsl(${h},${sl},12%) 100%)`;
@@ -129,27 +142,41 @@ function toggleWatchlist(id, btn) {
 }
 
 // ── Card Builder ─────────────────────────────────────────
+function makeCardActivatable(card, title, onActivate) {
+  card.tabIndex = 0;
+  card.setAttribute('role', 'button');
+  card.setAttribute('aria-label', title);
+  card.addEventListener('keydown', e => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      onActivate();
+    }
+  });
+  card.addEventListener('click', onActivate);
+}
+
 function buildCard(movie) {
   const inList    = myList.includes(movie.id);
   const posterUrl = `https://picsum.photos/seed/fb${movie.id}/300/450`;
+  const title     = escapeHtml(movie.title);
   const card = document.createElement('div');
   card.className = 'fb-card';
   card.dataset.id = movie.id;
 
   card.innerHTML = `
-    <img class="fb-card__poster" src="${posterUrl}" alt="${movie.title}" loading="lazy"
+    <img class="fb-card__poster" src="${posterUrl}" alt="${title}" loading="lazy"
       onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">
     <div class="fb-card__poster-placeholder" style="background:${posterGradient(movie.hue)};display:none">
       <i class="fa-solid ${posterIcon(movie.genre)}" style="font-size:2rem;opacity:.6;color:#fff"></i>
-      <span style="color:rgba(255,255,255,.75);font-size:.72rem;line-height:1.3">${movie.title}</span>
+      <span style="color:rgba(255,255,255,.75);font-size:.72rem;line-height:1.3">${title}</span>
     </div>
     <span class="fb-card__genre-tag">${movie.genre}</span>
-    <button class="fb-card__watchlist-btn${inList ? ' added' : ''}" title="${inList ? 'Remove from' : 'Add to'} My List" data-id="${movie.id}">
+    <button class="fb-card__watchlist-btn${inList ? ' added' : ''}" title="${inList ? 'Remove from' : 'Add to'} My List" aria-label="${inList ? 'Remove from' : 'Add to'} My List" data-id="${movie.id}">
       <i class="fa-solid ${inList ? 'fa-check' : 'fa-plus'}"></i>
     </button>
     <div class="fb-card__overlay">
       <div class="fb-card__play"><i class="fa-solid fa-play" style="margin-left:2px"></i></div>
-      <div class="fb-card__title">${movie.title}</div>
+      <div class="fb-card__title">${title}</div>
       <div class="fb-card__info">
         <span class="rating"><i class="fa-solid fa-star"></i> ${movie.rating}</span>
         <span>${movie.year}</span>
@@ -163,7 +190,7 @@ function buildCard(movie) {
     toggleWatchlist(movie.id, e.currentTarget);
   });
 
-  card.addEventListener('click', () => openModal(movie.id));
+  makeCardActivatable(card, movie.title, () => openModal(movie.id));
   return card;
 }
 
@@ -206,7 +233,7 @@ function initHero() {
   bg.style.backgroundPosition = 'center';
 
   document.getElementById('heroWatch').addEventListener('click', () => {
-    document.getElementById('movies').scrollIntoView({ behavior: 'smooth' });
+    openModal(featured.id);
   });
 
   document.getElementById('heroMoreInfo').addEventListener('click', () => {
@@ -218,6 +245,14 @@ function initHero() {
 let _playerCtx = null;  // { tmdbId, mediaType, season, episode, seasons, epCounts }
 let _activeServer = 1;
 let _nextEpTimer = null;
+let _serverLoadTimer = null;  // pending "slow loading" hint / spinner fallback
+
+function clearServerLoadTimer() {
+  if (_serverLoadTimer) {
+    clearTimeout(_serverLoadTimer);
+    _serverLoadTimer = null;
+  }
+}
 
 function embedUrl(mediaType, tmdbId, server, season, episode) {
   const type = mediaType === 'tv' ? 'tv' : 'movie';
@@ -240,22 +275,24 @@ function loadServer(n) {
   const hint    = document.getElementById('playerSlowHint');
 
   cancelNextEpisodeCountdown();
-  if (loadServer._timer) clearTimeout(loadServer._timer);
+  clearServerLoadTimer();
   if (hint) hint.style.display = 'none';
 
   document.querySelectorAll('.fb-player__srv').forEach(b => {
     b.classList.toggle('fb-player__srv--active', +b.dataset.srv === n);
   });
   loading.style.display = 'flex';
-  frame.src = '';
   frame.onload = () => {
-    clearTimeout(loadServer._timer);
     loading.style.display = 'none';
-    loadServer._timer = setTimeout(() => {
+    // Frame loaded — if nothing playable shows up soon, suggest another server.
+    clearServerLoadTimer();
+    _serverLoadTimer = setTimeout(() => {
       if (hint) hint.style.display = 'inline';
     }, 12000);
   };
-  loadServer._timer = setTimeout(() => { loading.style.display = 'none'; }, 15000);
+  // Fallback: never leave the spinner up forever if onload never fires.
+  _serverLoadTimer = setTimeout(() => { loading.style.display = 'none'; }, 15000);
+  frame.src = '';
   frame.src = embedUrl(_playerCtx.mediaType, _playerCtx.tmdbId, n, _playerCtx.season, _playerCtx.episode);
 }
 
@@ -392,18 +429,17 @@ function startNextEpisodeCountdown(seconds = 5) {
 
   const overlay = document.getElementById('playerCountdown');
   const secsEl  = document.getElementById('playerCountdownSecs');
-  const textEl  = document.getElementById('playerCountdownText');
-  if (!overlay || !secsEl || !textEl) return;
+  const epEl    = document.getElementById('playerCountdownEp');
+  if (!overlay || !secsEl) return;
 
   let remaining = seconds;
   secsEl.textContent = remaining;
-  textEl.innerHTML = `Playing <span class="ep-label">S${next.season} · E${next.episode}</span> in <span class="ep-label" id="playerCountdownSecs">${remaining}</span>s`;
+  if (epEl) epEl.textContent = `S${next.season} · E${next.episode}`;
   overlay.classList.add('open');
 
   _nextEpTimer = setInterval(() => {
     remaining -= 1;
-    const newSecsEl = document.getElementById('playerCountdownSecs');
-    if (newSecsEl) newSecsEl.textContent = remaining;
+    secsEl.textContent = remaining;
     if (remaining <= 0) {
       cancelNextEpisodeCountdown();
       playNextEpisode();
@@ -487,6 +523,7 @@ function closePlayer() {
   document.body.style.overflow = '';
   _playerCtx = null;
   cancelNextEpisodeCountdown();
+  clearServerLoadTimer();
   closeEpPanel();
   unlockOrientation();
   exitPlayerFullscreen();
@@ -524,8 +561,12 @@ function initPlayer() {
   if (countdownCancel) countdownCancel.addEventListener('click', cancelNextEpisodeCountdown);
 
   // Best-effort end-of-video detection from cross-origin embed iframes
+  const EMBED_HOSTS = ['videasy.net', 'vidsrc.to', 'multiembed.mov', 'vidsrc.cc', 'embed.su'];
   window.addEventListener('message', e => {
     if (!_playerCtx || _playerCtx.mediaType !== 'tv') return;
+    let host = '';
+    try { host = new URL(e.origin).hostname; } catch (_) { return; }
+    if (!EMBED_HOSTS.some(d => host === d || host.endsWith('.' + d))) return;
     const data = e.data;
     if (!data || typeof data !== 'object') return;
     const eventName = data.event || data.type || data.action || data.name || '';
@@ -546,6 +587,14 @@ function initPlayer() {
 }
 
 // ── Modal ────────────────────────────────────────────────
+let _lastFocusedEl = null;  // element to return focus to when the modal closes
+
+function onModalOpened() {
+  _lastFocusedEl = document.activeElement;
+  const closeBtn = document.getElementById('modalClose');
+  if (closeBtn) closeBtn.focus();
+}
+
 function openModal(id) {
   const m = findById(id);
   if (!m) return;
@@ -595,17 +644,44 @@ function openModal(id) {
 
   document.getElementById('fbModal').classList.add('open');
   document.body.style.overflow = 'hidden';
+  onModalOpened();
 }
 
 function closeModal() {
-  document.getElementById('fbModal').classList.remove('open');
+  const modal = document.getElementById('fbModal');
+  const wasOpen = modal.classList.contains('open');
+  modal.classList.remove('open');
   document.body.style.overflow = '';
+  if (wasOpen && _lastFocusedEl && document.contains(_lastFocusedEl)) {
+    _lastFocusedEl.focus();
+  }
+  _lastFocusedEl = null;
 }
 
 function initModal() {
   document.getElementById('modalClose').addEventListener('click', closeModal);
   document.getElementById('modalBackdrop').addEventListener('click', closeModal);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeModal(); });
+  document.addEventListener('keydown', e => {
+    const modal = document.getElementById('fbModal');
+    if (!modal.classList.contains('open')) return;
+    if (e.key === 'Escape') { closeModal(); return; }
+    if (e.key !== 'Tab') return;
+    // Basic focus trap: keep Tab cycling inside the modal box
+    const box = modal.querySelector('.fb-modal__box');
+    const focusables = box.querySelectorAll(
+      'button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusables.length) return;
+    const first = focusables[0];
+    const last  = focusables[focusables.length - 1];
+    if (e.shiftKey && (document.activeElement === first || !box.contains(document.activeElement))) {
+      e.preventDefault();
+      last.focus();
+    } else if (!e.shiftKey && (document.activeElement === last || !box.contains(document.activeElement))) {
+      e.preventDefault();
+      first.focus();
+    }
+  });
 }
 
 // ── Search ───────────────────────────────────────────────
@@ -669,6 +745,8 @@ function initSearch() {
         localSearch(q);
       }
     } catch (err) {
+      // Allow retrying the same query after an aborted or failed request
+      lastQuery = '';
       if (err.name === 'AbortError') return;
       // Network/server error — fall back to local catalog
       grid.innerHTML = '';
@@ -731,8 +809,6 @@ function initMyListLink() {
 // Titles fetched from the Node.js backend (which scrapes flixbaba.mov).
 // Falls back gracefully to the hardcoded MOVIES data if the server is offline.
 
-let LIVE_TITLES = [];  // populated after fetch
-
 function liveHue(i) {
   const hues = ['260,70%','340,65%','150,55%','220,65%','30,75%','190,60%','270,60%','10,65%'];
   return hues[i % hues.length];
@@ -767,28 +843,33 @@ function buildLiveCard(movie) {
   card.className = 'fb-card';
   card.dataset.id = movie.id;
 
+  const title  = escapeHtml(movie.title);
+  const genre  = escapeHtml(movie.genre);
+  const year   = escapeHtml(movie.year);
+  const rating = escapeHtml(movie.rating);
+
   const posterHtml = movie.poster
-    ? `<img class="fb-card__poster" src="${movie.poster}" alt="${movie.title}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
+    ? `<img class="fb-card__poster" src="${movie.poster}" alt="${title}" loading="lazy" onerror="this.style.display='none';this.nextElementSibling.style.display='flex'">`
     : '';
 
   card.innerHTML = `
     ${posterHtml}
     <div class="fb-card__poster-placeholder" style="background:${posterGradient(movie.hue)};${movie.poster ? 'display:none' : ''}">
       <i class="fa-solid ${posterIcon(movie.genre)}" style="font-size:2rem;opacity:.6;color:#fff"></i>
-      <span style="color:rgba(255,255,255,.75);font-size:.72rem;line-height:1.3">${movie.title}</span>
+      <span style="color:rgba(255,255,255,.75);font-size:.72rem;line-height:1.3">${title}</span>
     </div>
-    <span class="fb-card__genre-tag">${movie.genre}</span>
+    <span class="fb-card__genre-tag">${genre}</span>
     <div class="fb-card__overlay">
       <div class="fb-card__play"><i class="fa-solid fa-play" style="margin-left:2px"></i></div>
-      <div class="fb-card__title">${movie.title}</div>
+      <div class="fb-card__title">${title}</div>
       <div class="fb-card__info">
-        ${movie.rating ? `<span class="rating"><i class="fa-solid fa-star"></i> ${movie.rating}</span>` : ''}
-        ${movie.year   ? `<span>${movie.year}</span>` : ''}
+        ${rating ? `<span class="rating"><i class="fa-solid fa-star"></i> ${rating}</span>` : ''}
+        ${year   ? `<span>${year}</span>` : ''}
       </div>
     </div>
   `;
 
-  card.addEventListener('click', () => openLiveModal(movie));
+  makeCardActivatable(card, movie.title, () => openLiveModal(movie));
   return card;
 }
 
@@ -806,9 +887,9 @@ function openLiveModal(movie) {
   }
 
   document.getElementById('modalMeta').innerHTML = `
-    ${movie.rating ? `<span style="color:#f59e0b;font-weight:700"><i class="fa-solid fa-star"></i> ${movie.rating}</span>` : ''}
-    ${movie.year   ? `<span>${movie.year}</span>` : ''}
-    <span style="background:rgba(139,92,246,.25);border:1px solid rgba(139,92,246,.4);color:#c4b5fd;padding:2px 10px;border-radius:99px;font-size:.78rem">${movie.genre}</span>
+    ${movie.rating ? `<span style="color:#f59e0b;font-weight:700"><i class="fa-solid fa-star"></i> ${escapeHtml(movie.rating)}</span>` : ''}
+    ${movie.year   ? `<span>${escapeHtml(movie.year)}</span>` : ''}
+    <span style="background:rgba(139,92,246,.25);border:1px solid rgba(139,92,246,.4);color:#c4b5fd;padding:2px 10px;border-radius:99px;font-size:.78rem">${escapeHtml(movie.genre)}</span>
   `;
 
   const watchBtn = document.getElementById('modalWatch');
@@ -822,56 +903,33 @@ function openLiveModal(movie) {
     }
   };
 
-  document.getElementById('modalAddList').onclick = () => showToast(`"${movie.title}" saved!`);
+  // Persist to the same localStorage watchlist as catalog titles
+  const addBtn = document.getElementById('modalAddList');
+  const syncAddBtn = () => {
+    const inList = myList.includes(movie.id);
+    addBtn.innerHTML = `<i class="fa-solid ${inList ? 'fa-check' : 'fa-plus'}"></i>`;
+    addBtn.title = inList ? 'Remove from My List' : 'Add to My List';
+  };
+  syncAddBtn();
+  addBtn.onclick = () => {
+    const idx = myList.indexOf(movie.id);
+    if (idx === -1) {
+      myList.push(movie.id);
+      showToast(`"${movie.title}" added to My List`);
+    } else {
+      myList.splice(idx, 1);
+      showToast(`"${movie.title}" removed from My List`);
+    }
+    saveList();
+    syncAddBtn();
+  };
 
   document.getElementById('modalTags').innerHTML = [movie.genre, movie.year]
-    .filter(Boolean).map(t => `<span class="fb-modal__tag">${t}</span>`).join('');
+    .filter(Boolean).map(t => `<span class="fb-modal__tag">${escapeHtml(t)}</span>`).join('');
 
   document.getElementById('fbModal').classList.add('open');
   document.body.style.overflow = 'hidden';
-}
-
-function insertLiveRow(titles) {
-  if (!titles.length) return;
-
-  const main = document.getElementById('movies');
-  const section = document.createElement('section');
-  section.className = 'fb-row';
-  section.id = 'rowLive';
-  section.innerHTML = `
-    <div class="fb-row__header">
-      <h2 class="fb-row__title">
-        <i class="fa-solid fa-satellite-dish" style="color:#22d3ee"></i>
-        Live from FlixBaba
-        <span style="font-size:.65rem;font-weight:400;color:#9090b0;margin-left:8px">${titles.length} titles</span>
-      </h2>
-      <a href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-row__see-all">
-        Browse all <i class="fa-solid fa-arrow-right"></i>
-      </a>
-    </div>
-    <div class="fb-row__track-wrap">
-      <button class="fb-row__arrow fb-row__arrow--left" aria-label="Scroll left"><i class="fa-solid fa-chevron-left"></i></button>
-      <div class="fb-row__track" id="rowLiveTrack"></div>
-      <button class="fb-row__arrow fb-row__arrow--right" aria-label="Scroll right"><i class="fa-solid fa-chevron-right"></i></button>
-    </div>
-  `;
-
-  // Insert before the first existing row so it appears at the top
-  main.insertBefore(section, main.firstElementChild);
-
-  const track = section.querySelector('#rowLiveTrack');
-  titles.forEach((t, i) => {
-    const movie = apiToMovie(t, i);
-    LIVE_TITLES.push(movie);
-    track.appendChild(buildLiveCard(movie));
-  });
-
-  // Wire up the arrow buttons for this new row
-  const wrap = section.querySelector('.fb-row__track-wrap');
-  wrap.querySelector('.fb-row__arrow--left').addEventListener('click',  () => track.scrollBy({ left: -600, behavior: 'smooth' }));
-  wrap.querySelector('.fb-row__arrow--right').addEventListener('click', () => track.scrollBy({ left:  600, behavior: 'smooth' }));
-
-  showToast(`${titles.length} titles loaded live from FlixBaba`);
+  onModalOpened();
 }
 
 async function fetchLiveTitles() {

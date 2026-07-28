@@ -1227,7 +1227,15 @@ button {
 /* ── Responsive ─────────────────────────────────────────── */
 @media (max-width: 900px) {
   .fb-nav { padding: 0 20px; gap: 16px; }
-  .fb-nav__links { display: none; }
+  .fb-nav__left { gap: 14px; min-width: 0; }
+  /* Keep nav links reachable on small screens via horizontal scroll */
+  .fb-nav__links {
+    overflow-x: auto;
+    scrollbar-width: none;
+    -webkit-overflow-scrolling: touch;
+    white-space: nowrap;
+  }
+  .fb-nav__links::-webkit-scrollbar { display: none; }
   .fb-hero__content { padding: 0 28px; }
   .fb-main { padding: 0 20px 48px; }
   .fb-footer__inner { grid-template-columns: 1fr; gap: 32px; }
@@ -1242,4 +1250,16 @@ button {
   .fb-btn--visit span { display: none; }
   .fb-search__input.open { width: 140px; }
   .fb-modal__title { font-size: 1.4rem; }
+}
+
+/* ── Reduced motion ─────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+  .fb-hero__scroll-hint { animation: none; }
+  .fb-row__track { scroll-behavior: auto; }
 }

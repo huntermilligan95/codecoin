@@ -2,10 +2,13 @@
 
 require('dotenv').config();
 
-const express = require('express');
-const axios   = require('axios');
-const cheerio = require('cheerio');
-const path    = require('path');
+const express    = require('express');
+const axios      = require('axios');
+const cheerio    = require('cheerio');
+const path       = require('path');
+const helmet     = require('helmet');
+const compression = require('compression');
+const rateLimit  = require('express-rate-limit');
 
 const app      = express();
 const PORT     = process.env.PORT || 3000;
@@ -13,6 +16,56 @@ const ORIGIN   = 'https://flixbaba.mov';
 const TMDB_KEY = process.env.TMDB_API_KEY;
 const TMDB     = 'https://api.themoviedb.org/3';
 const IMG      = 'https://image.tmdb.org/t/p/w342';
+
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024; // 5 MB cap for proxied images
+
+// ── Security headers & gzip ──────────────────────────────
+// CSP is disabled because the /proxy route serves rewritten
+// third-party pages that would break under a strict policy.
+app.use(helmet({ contentSecurityPolicy: false }));
+app.use(compression());
+
+// ── Rate limiting (100 req / 15 min per IP) ──────────────
+const proxyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { ok: false, error: 'Too many requests, try again later' },
+});
+app.use('/proxy', proxyLimiter);
+app.use('/api/image', proxyLimiter);
+
+// ── Simple in-memory TTL cache ───────────────────────────
+function makeCache(ttlMs) {
+  const store = new Map();
+  return {
+    get(key) {
+      const hit = store.get(key);
+      if (!hit) return null;
+      if (hit.expires < Date.now()) { store.delete(key); return null; }
+      return hit.value;
+    },
+    set(key, value) {
+      store.set(key, { value, expires: Date.now() + ttlMs });
+    },
+  };
+}
+
+const titlesCache = makeCache(10 * 60 * 1000); // 10 minutes
+const imageCache  = makeCache(5  * 60 * 1000); // 5 minutes
+
+// ── Host allowlist check (exact match or proper subdomain) ──
+function hostAllowed(hostname, domain) {
+  return hostname === domain || hostname.endsWith('.' + domain);
+}
+
+// ── HTML-escape for values interpolated into error pages ──
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;',
+  }[c]));
+}
 
 // ── TMDB helper ──────────────────────────────────────────
 async function tmdb(endpoint, params = {}) {
@@ -85,69 +138,14 @@ function stripAds($) {
   try { $(adSelectors).remove(); } catch (_) { /* ignore invalid selectors */ }
 }
 
-// ── Resolve relative URLs ────────────────────────────────
-function abs(url) {
-  if (!url) return '';
-  if (url.startsWith('http')) return url;
-  if (url.startsWith('//')) return 'https:' + url;
-  if (url.startsWith('/')) return ORIGIN + url;
-  return ORIGIN + '/' + url;
-}
-
-// ── Extract movie/show cards from parsed HTML ────────────
-// Tries a cascade of common selector patterns used by streaming sites.
-function extractTitles($) {
-  const results = [];
-  const seen    = new Set();
-
-  // Ordered from most-specific to broadest — stops when a match yields > 3 items
-  const cardSelectors = [
-    '.movie-item', '.film-item', '.flw-item', '.video-item',
-    '.item',       '.movie',     '.film',     '.entry',
-    '[class*="movie-card"]', '[class*="film-card"]', '[class*="video-card"]',
-    'article',     '.post',
-  ];
-
-  const titleSelectors  = '[class*="title"], [class*="name"], h3, h2, h4, h1';
-  const ratingSelectors = '[class*="imdb"], [class*="rating"], [class*="score"], [class*="rate"]';
-  const yearSelectors   = '[class*="year"], [class*="date"], time';
-  const genreSelectors  = '[class*="genre"], [class*="category"], [class*="type"]';
-
-  for (const sel of cardSelectors) {
-    const cards = $(sel);
-    if (cards.length < 4) continue;
-
-    cards.each((_, el) => {
-      const $el   = $(el);
-      const title = $el.find(titleSelectors).first().text().trim()
-                 || $el.attr('title')
-                 || $el.find('a').attr('title') || '';
-      if (!title || title.length < 2 || seen.has(title)) return;
-      seen.add(title);
-
-      const imgEl  = $el.find('img').first();
-      const poster = abs(imgEl.attr('data-src') || imgEl.attr('data-lazy-src') || imgEl.attr('src') || '');
-      const link   = abs($el.find('a').first().attr('href') || '');
-      const year   = ($el.find(yearSelectors).first().text().match(/\b(19|20)\d{2}\b/) || [])[0]
-                  || ($el.text().match(/\b(19|20)\d{2}\b/) || [])[0] || '';
-      const rawRating = $el.find(ratingSelectors).first().text().replace(/[^0-9.]/g, '');
-      const rating = parseFloat(rawRating) ? rawRating : '';
-      const genre  = $el.find(genreSelectors).first().text().trim() || '';
-      const desc   = $el.find('[class*="desc"], [class*="story"], p').first().text().trim() || '';
-
-      results.push({ title, poster, link, year, rating, genre, desc });
-    });
-
-    if (results.length > 3) break;
-  }
-
-  return results;
-}
-
 // ── Fetch helper with realistic browser headers ──────────
+// Redirects are NOT followed: a 3xx response raises an error so
+// an allowlisted URL can't bounce us to an arbitrary host.
 async function fetchPage(url) {
-  const { data } = await axios.get(url, {
+  const resp = await axios.get(url, {
     timeout: 15000,
+    maxRedirects: 0,
+    validateStatus: s => s >= 200 && s < 400,
     headers: {
       'User-Agent':      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0 Safari/537.36',
       'Accept':          'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
@@ -157,7 +155,8 @@ async function fetchPage(url) {
       'DNT':             '1',
     },
   });
-  return data;
+  if (resp.status >= 300) throw new Error('Upstream redirect not followed');
+  return resp.data;
 }
 
 // ── Health check (used by Render) ────────────────────────
@@ -166,13 +165,13 @@ app.get('/health', (_, res) => res.json({ ok: true }));
 // ── Redirect old /flixbaba.html URL to root ──────────────
 app.get('/flixbaba.html', (_, res) => res.redirect(301, '/'));
 
-// ── Serve static frontend files ──────────────────────────
+// ── Serve static frontend files from public/ only ────────
 // HTML files: no-store so browsers always fetch the latest version
 app.get('*.html', (req, res, next) => {
   res.set('Cache-Control', 'no-store');
   next();
 });
-app.use(express.static(path.join(__dirname)));
+app.use(express.static(path.join(__dirname, 'public')));
 
 // ── Serve Font Awesome from local node_modules ───────────
 app.use('/fontawesome', express.static(
@@ -182,6 +181,9 @@ app.use('/fontawesome', express.static(
 // ── API: TMDB-powered browse categories ──────────────────
 app.get('/api/titles', async (req, res) => {
   if (!TMDB_KEY) return res.json({ ok: false, error: 'TMDB_API_KEY not configured', categories: {} });
+
+  const cached = titlesCache.get('all');
+  if (cached) return res.json(cached);
 
   try {
     const [trending, newReleases, action, comedy, scifi, drama] = await Promise.all([
@@ -193,7 +195,7 @@ app.get('/api/titles', async (req, res) => {
       tmdb('/discover/movie', { with_genres: 18,  sort_by: 'popularity.desc' }),
     ]);
 
-    res.json({
+    const payload = {
       ok: true,
       categories: {
         trending:    (trending.results    || []).slice(0, 20).map(mapItem),
@@ -203,7 +205,9 @@ app.get('/api/titles', async (req, res) => {
         scifi:       (scifi.results       || []).slice(0, 20).map(mapItem),
         drama:       (drama.results       || []).slice(0, 20).map(mapItem),
       },
-    });
+    };
+    titlesCache.set('all', payload);
+    res.json(payload);
   } catch (err) {
     res.status(502).json({ ok: false, error: err.message });
   }
@@ -214,7 +218,7 @@ app.get('/api/search', async (req, res) => {
   if (!TMDB_KEY) return res.json({ ok: false, error: 'TMDB_API_KEY not configured', titles: [] });
 
   const q = (req.query.q || '').trim();
-  if (!q) return res.status(400).json({ error: 'Missing q param' });
+  if (!q) return res.status(400).json({ ok: false, error: 'Missing q param' });
 
   try {
     const data   = await tmdb('/search/multi', { query: q, include_adult: false, page: 1 });
@@ -230,23 +234,44 @@ app.get('/api/search', async (req, res) => {
 // ── API: proxy images (flixbaba.mov + TMDB) ──────────────
 app.get('/api/image', async (req, res) => {
   const { url } = req.query;
-  if (!url) return res.status(400).json({ error: 'Missing url param' });
+  if (!url) return res.status(400).json({ ok: false, error: 'Missing url param' });
 
   let parsed;
-  try { parsed = new URL(url); } catch { return res.status(400).json({ error: 'Invalid URL' }); }
+  try { parsed = new URL(url); } catch { return res.status(400).json({ ok: false, error: 'Invalid URL' }); }
 
-  const allowed = parsed.hostname.endsWith('flixbaba.mov') ||
-                  parsed.hostname.endsWith('image.tmdb.org');
-  if (!allowed) return res.status(403).json({ error: 'Domain not allowed' });
+  const allowed = hostAllowed(parsed.hostname, 'flixbaba.mov') ||
+                  hostAllowed(parsed.hostname, 'image.tmdb.org');
+  if (!allowed) return res.status(403).json({ ok: false, error: 'Domain not allowed' });
+
+  const cached = imageCache.get(url);
+  if (cached) {
+    res.set('Content-Type', cached.contentType);
+    res.set('Cache-Control', 'public, max-age=300');
+    return res.send(cached.buffer);
+  }
 
   try {
-    const upstream = await axios.get(url, { responseType: 'stream', timeout: 10000 });
+    const upstream = await axios.get(url, {
+      responseType: 'arraybuffer',
+      timeout: 10000,
+      maxRedirects: 0,
+      maxContentLength: MAX_IMAGE_BYTES,
+      validateStatus: s => s >= 200 && s < 400,
+    });
+    if (upstream.status >= 300) {
+      return res.status(502).json({ ok: false, error: 'Upstream redirect not followed' });
+    }
     const ct = upstream.headers['content-type'] || 'image/jpeg';
-    if (!ct.startsWith('image/')) return res.status(415).json({ error: 'Not an image' });
+    if (!ct.startsWith('image/')) return res.status(415).json({ ok: false, error: 'Not an image' });
+
+    const buffer = Buffer.from(upstream.data);
+    imageCache.set(url, { contentType: ct, buffer });
+
     res.set('Content-Type', ct);
-    upstream.data.pipe(res);
+    res.set('Cache-Control', 'public, max-age=300');
+    res.send(buffer);
   } catch (err) {
-    res.status(502).json({ error: err.message });
+    res.status(502).json({ ok: false, error: err.message });
   }
 });
 
@@ -258,8 +283,8 @@ app.get('/proxy', async (req, res) => {
   let parsed;
   try { parsed = new URL(url); } catch { return res.status(400).send('Invalid URL'); }
 
-  const isFlixbaba = parsed.hostname.endsWith('flixbaba.mov');
-  const isVsembed  = parsed.hostname.endsWith('vsembed.ru');
+  const isFlixbaba = hostAllowed(parsed.hostname, 'flixbaba.mov');
+  const isVsembed  = hostAllowed(parsed.hostname, 'vsembed.ru');
   if (!isFlixbaba && !isVsembed) return res.status(403).send('Domain not allowed');
 
   const pageOrigin = `${parsed.protocol}//${parsed.hostname}`;
@@ -362,8 +387,8 @@ app.get('/proxy', async (req, res) => {
     res.send($.html());
   } catch (err) {
     res.status(502).send(`<html><body style="background:#0f0f1a;color:#fff;font-family:sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;flex-direction:column;gap:16px">
-      <h2>Could not load page</h2><p style="color:#9090b0">${err.message}</p>
-      <a href="${url}" target="_blank" style="color:#8b5cf6">Open directly</a>
+      <h2>Could not load page</h2><p style="color:#9090b0">${escapeHtml(err.message)}</p>
+      <a href="${escapeHtml(url)}" target="_blank" rel="noopener noreferrer" style="color:#8b5cf6">Open directly</a>
     </body></html>`);
   }
 });
@@ -371,5 +396,5 @@ app.get('/proxy', async (req, res) => {
 // ── Start ────────────────────────────────────────────────
 app.listen(PORT, () => {
   console.log(`\nFlixBaba mirror running at http://localhost:${PORT}`);
-  console.log(`Open your browser:  http://localhost:${PORT}/flixbaba.html\n`);
+  console.log(`Open your browser:  http://localhost:${PORT}/\n`);
 });

@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="FlixBaba">
   <title>FlixBaba - Stream Unlimited Movies & Shows</title>
-  <link rel="stylesheet" href="./assets/css/flixbaba.css?v=8">
+  <link rel="stylesheet" href="./assets/css/flixbaba.css">
   <link rel="stylesheet" href="/fontawesome/css/all.min.css">
 </head>
 <body>
@@ -31,7 +31,7 @@
         <button class="fb-search__toggle" id="searchToggle" aria-label="Search">
           <i class="fa-solid fa-magnifying-glass"></i>
         </button>
-        <input type="text" class="fb-search__input" id="searchInput" placeholder="Titles, genres…">
+        <input type="text" class="fb-search__input" id="searchInput" placeholder="Titles, genres…" aria-label="Search titles and genres">
       </div>
       <a href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-btn fb-btn--visit">
         <i class="fa-solid fa-arrow-up-right-from-square"></i>
@@ -44,7 +44,7 @@
   <div class="fb-search-overlay" id="searchOverlay">
     <div class="fb-search-overlay__header">
       <span>Search Results</span>
-      <button id="closeSearch"><i class="fa-solid fa-xmark"></i></button>
+      <button id="closeSearch" aria-label="Close search results"><i class="fa-solid fa-xmark"></i></button>
     </div>
     <div class="fb-search-overlay__grid" id="searchResults"></div>
     <p class="fb-search-overlay__empty" id="noResults">No results found.</p>
@@ -263,17 +263,17 @@
           <span id="epToggleLabel">S1 · E1</span>
           <i class="fa-solid fa-chevron-down fb-ep__toggle-caret"></i>
         </button>
-        <button id="playerFullscreen" title="Toggle fullscreen">
+        <button id="playerFullscreen" title="Toggle fullscreen" aria-label="Toggle fullscreen">
           <i class="fa-solid fa-expand" id="playerFullscreenIcon"></i>
         </button>
-        <button id="playerNextEp" title="Next episode (N)" style="display:none">
+        <button id="playerNextEp" title="Next episode (N)" aria-label="Next episode" style="display:none">
           <i class="fa-solid fa-forward-step"></i>
           <span>Next</span>
         </button>
         <a id="playerExternal" href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-player__ext-btn" title="Open on FlixBaba">
           <i class="fa-solid fa-arrow-up-right-from-square"></i>
         </a>
-        <button id="closePlayer" title="Close player"><i class="fa-solid fa-xmark"></i></button>
+        <button id="closePlayer" title="Close player" aria-label="Close player"><i class="fa-solid fa-xmark"></i></button>
       </div>
     </div>
     <!-- Episode picker dropdown — absolute, overlays the video -->
@@ -294,7 +294,7 @@
       <div class="fb-player__countdown" id="playerCountdown">
         <div class="fb-player__countdown-box">
           <h3>Up next</h3>
-          <p id="playerCountdownText">Playing next episode in <span class="ep-label" id="playerCountdownSecs">5</span>s</p>
+          <p id="playerCountdownText">Playing <span class="ep-label" id="playerCountdownEp">next episode</span> in <span class="ep-label" id="playerCountdownSecs">5</span>s</p>
           <div class="fb-player__countdown-actions">
             <button class="btn-primary" id="playerCountdownPlay">Play now</button>
             <button id="playerCountdownCancel">Cancel</button>
@@ -306,6 +306,6 @@
     </div>
   </div>
 
-  <script src="./assets/js/flixbaba.js?v=22"></script>
+  <script src="./assets/js/flixbaba.js"></script>
 </body>
 </html>
