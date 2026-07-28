@@ -217,6 +217,7 @@ function initHero() {
 // ── Player / Server Picker ───────────────────────────────
 let _playerCtx = null;  // { tmdbId, mediaType, season, episode, seasons, epCounts }
 let _activeServer = 1;
+let _nextEpTimer = null;
 
 function embedUrl(mediaType, tmdbId, server, season, episode) {
   const type = mediaType === 'tv' ? 'tv' : 'movie';
@@ -238,6 +239,7 @@ function loadServer(n) {
   const loading = document.getElementById('playerLoading');
   const hint    = document.getElementById('playerSlowHint');
 
+  cancelNextEpisodeCountdown();
   if (loadServer._timer) clearTimeout(loadServer._timer);
   if (hint) hint.style.display = 'none';
 
@@ -263,15 +265,53 @@ function epCountForSeason(s) {
   return _playerCtx.epCounts[s - 1] || 20;
 }
 
+function getNextEpisode() {
+  if (!_playerCtx || _playerCtx.mediaType !== 'tv') return null;
+  const { season, episode, seasons } = _playerCtx;
+  const count = epCountForSeason(season);
+  if (episode < count) {
+    return { season, episode: episode + 1 };
+  }
+  if (season < seasons) {
+    return { season: season + 1, episode: 1 };
+  }
+  return null; // series complete
+}
+
+function hasNextEpisode() {
+  return !!getNextEpisode();
+}
+
+function playNextEpisode() {
+  const next = getNextEpisode();
+  if (!next) {
+    showToast('Series complete');
+    return;
+  }
+  cancelNextEpisodeCountdown();
+  _playerCtx.season = next.season;
+  _playerCtx.episode = next.episode;
+  closeEpPanel();
+  updateEpToggle();
+  buildEpPanel();
+  loadServer(_activeServer);
+}
+
 function updateEpToggle() {
   const toggle = document.getElementById('epToggle');
   const label  = document.getElementById('epToggleLabel');
+  const nextBtn = document.getElementById('playerNextEp');
   if (!_playerCtx || _playerCtx.mediaType !== 'tv') {
-    toggle.style.display = 'none';
+    if (toggle) toggle.style.display = 'none';
+    if (nextBtn) nextBtn.style.display = 'none';
     return;
   }
   toggle.style.display = 'flex';
   label.textContent = `S${_playerCtx.season}  ·  E${_playerCtx.episode}`;
+  if (nextBtn) {
+    nextBtn.style.display = 'flex';
+    nextBtn.disabled = !hasNextEpisode();
+  }
 }
 
 function buildEpPanel() {
@@ -336,6 +376,41 @@ function toggleEpPanel() {
   }
 }
 
+function cancelNextEpisodeCountdown() {
+  if (_nextEpTimer) {
+    clearInterval(_nextEpTimer);
+    _nextEpTimer = null;
+  }
+  const overlay = document.getElementById('playerCountdown');
+  if (overlay) overlay.classList.remove('open');
+}
+
+function startNextEpisodeCountdown(seconds = 5) {
+  cancelNextEpisodeCountdown();
+  const next = getNextEpisode();
+  if (!next) return;
+
+  const overlay = document.getElementById('playerCountdown');
+  const secsEl  = document.getElementById('playerCountdownSecs');
+  const textEl  = document.getElementById('playerCountdownText');
+  if (!overlay || !secsEl || !textEl) return;
+
+  let remaining = seconds;
+  secsEl.textContent = remaining;
+  textEl.innerHTML = `Playing <span class="ep-label">S${next.season} · E${next.episode}</span> in <span class="ep-label" id="playerCountdownSecs">${remaining}</span>s`;
+  overlay.classList.add('open');
+
+  _nextEpTimer = setInterval(() => {
+    remaining -= 1;
+    const newSecsEl = document.getElementById('playerCountdownSecs');
+    if (newSecsEl) newSecsEl.textContent = remaining;
+    if (remaining <= 0) {
+      cancelNextEpisodeCountdown();
+      playNextEpisode();
+    }
+  }, 1000);
+}
+
 function isTouchDevice() {
   return 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 }
@@ -391,6 +466,7 @@ function openPlayer(title, tmdbId, mediaType, seasons, epCounts) {
   _playerCtx = { tmdbId, mediaType, season: 1, episode: 1, seasons: seasons || 1, epCounts: epCounts || null };
   player.classList.add('open');
   document.body.style.overflow = 'hidden';
+  cancelNextEpisodeCountdown();
   closeEpPanel();
   updateEpToggle();
   loadServer(1);
@@ -410,6 +486,7 @@ function closePlayer() {
   frame.src = '';
   document.body.style.overflow = '';
   _playerCtx = null;
+  cancelNextEpisodeCountdown();
   closeEpPanel();
   unlockOrientation();
   exitPlayerFullscreen();
@@ -419,9 +496,18 @@ function initPlayer() {
   document.getElementById('closePlayer').addEventListener('click', closePlayer);
   const fsBtn = document.getElementById('playerFullscreen');
   if (fsBtn) fsBtn.addEventListener('click', togglePlayerFullscreen);
+  const nextBtn = document.getElementById('playerNextEp');
+  if (nextBtn) nextBtn.addEventListener('click', playNextEpisode);
   document.addEventListener('fullscreenchange', updateFullscreenIcon);
   document.addEventListener('webkitfullscreenchange', updateFullscreenIcon);
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') { closePlayer(); closeEpPanel(); } });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closePlayer(); closeEpPanel(); }
+    if (e.key === 'n' || e.key === 'N') {
+      const tag = (e.target && e.target.tagName) || '';
+      const isTyping = tag === 'INPUT' || tag === 'TEXTAREA' || (e.target && e.target.isContentEditable);
+      if (!isTyping && _playerCtx && _playerCtx.mediaType === 'tv') playNextEpisode();
+    }
+  });
   document.querySelectorAll('.fb-player__srv').forEach(btn => {
     btn.addEventListener('click', () => loadServer(+btn.dataset.srv));
   });
@@ -429,6 +515,24 @@ function initPlayer() {
   document.getElementById('epToggle').addEventListener('click', e => {
     e.stopPropagation();
     toggleEpPanel();
+  });
+
+  // Countdown overlay actions
+  const countdownPlay = document.getElementById('playerCountdownPlay');
+  const countdownCancel = document.getElementById('playerCountdownCancel');
+  if (countdownPlay) countdownPlay.addEventListener('click', () => { cancelNextEpisodeCountdown(); playNextEpisode(); });
+  if (countdownCancel) countdownCancel.addEventListener('click', cancelNextEpisodeCountdown);
+
+  // Best-effort end-of-video detection from cross-origin embed iframes
+  window.addEventListener('message', e => {
+    if (!_playerCtx || _playerCtx.mediaType !== 'tv') return;
+    const data = e.data;
+    if (!data || typeof data !== 'object') return;
+    const eventName = data.event || data.type || data.action || data.name || '';
+    const endedEvents = ['ended', 'complete', 'completed', 'videoEnded', 'mediaEnded', 'finish', 'finished'];
+    if (endedEvents.includes(String(eventName).toLowerCase())) {
+      if (hasNextEpisode()) startNextEpisodeCountdown(5);
+    }
   });
 
   // Close panel when clicking outside toggle + panel

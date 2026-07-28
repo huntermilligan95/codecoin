@@ -8,7 +8,7 @@
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="FlixBaba">
   <title>FlixBaba - Stream Unlimited Movies & Shows</title>
-  <link rel="stylesheet" href="./assets/css/flixbaba.css?v=7">
+  <link rel="stylesheet" href="./assets/css/flixbaba.css?v=8">
   <link rel="stylesheet" href="/fontawesome/css/all.min.css">
 </head>
 <body>
@@ -266,6 +266,10 @@
         <button id="playerFullscreen" title="Toggle fullscreen">
           <i class="fa-solid fa-expand" id="playerFullscreenIcon"></i>
         </button>
+        <button id="playerNextEp" title="Next episode (N)" style="display:none">
+          <i class="fa-solid fa-forward-step"></i>
+          <span>Next</span>
+        </button>
         <a id="playerExternal" href="https://flixbaba.mov" target="_blank" rel="noopener" class="fb-player__ext-btn" title="Open on FlixBaba">
           <i class="fa-solid fa-arrow-up-right-from-square"></i>
         </a>
@@ -287,11 +291,21 @@
         <div class="fb-player__spinner"></div>
         <p>Loading from FlixBaba…</p>
       </div>
+      <div class="fb-player__countdown" id="playerCountdown">
+        <div class="fb-player__countdown-box">
+          <h3>Up next</h3>
+          <p id="playerCountdownText">Playing next episode in <span class="ep-label" id="playerCountdownSecs">5</span>s</p>
+          <div class="fb-player__countdown-actions">
+            <button class="btn-primary" id="playerCountdownPlay">Play now</button>
+            <button id="playerCountdownCancel">Cancel</button>
+          </div>
+        </div>
+      </div>
       <iframe class="fb-player__frame" id="playerFrame" src="" allowfullscreen
         allow="autoplay; fullscreen; picture-in-picture; encrypted-media"></iframe>
     </div>
   </div>
 
-  <script src="./assets/js/flixbaba.js?v=21"></script>
+  <script src="./assets/js/flixbaba.js?v=22"></script>
 </body>
 </html>
