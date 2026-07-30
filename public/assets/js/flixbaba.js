@@ -227,10 +227,7 @@ function initRowArrows() {
 // ── Hero ─────────────────────────────────────────────────
 function initHero() {
   const featured = MOVIES.trending[0];
-  const bg = document.getElementById('heroBg');
-  bg.style.backgroundImage = `url(https://picsum.photos/seed/fb${featured.id}hero/1600/900)`;
-  bg.style.backgroundSize = 'cover';
-  bg.style.backgroundPosition = 'center';
+  updateHero(featured);
 
   document.getElementById('heroWatch').addEventListener('click', () => {
     openModal(featured.id);
@@ -239,6 +236,31 @@ function initHero() {
   document.getElementById('heroMoreInfo').addEventListener('click', () => {
     openModal(featured.id);
   });
+}
+
+function updateHero(featured) {
+  const bg = document.getElementById('heroBg');
+  const titleEl = document.getElementById('heroTitle');
+  const metaEl = document.getElementById('heroMeta');
+
+  if (featured.poster) {
+    // Use TMDB poster for hero background
+    bg.style.backgroundImage = `url(${featured.poster.replace('/w342/', '/original/')})`;
+  } else {
+    bg.style.backgroundImage = `url(https://picsum.photos/seed/fb${featured.id}hero/1600/900)`;
+  }
+  bg.style.backgroundSize = 'cover';
+  bg.style.backgroundPosition = 'center';
+
+  if (titleEl) titleEl.textContent = featured.title;
+  if (metaEl) {
+    metaEl.innerHTML = `
+      ${featured.rating ? `<span style="color:#f59e0b;font-weight:700"><i class="fa-solid fa-star"></i> ${escapeHtml(featured.rating)}</span>` : ''}
+      ${featured.year   ? `<span>${escapeHtml(featured.year)}</span>` : ''}
+      <span style="background:rgba(139,92,246,.25);border:1px solid rgba(139,92,246,.4);color:#c4b5fd;padding:2px 10px;border-radius:99px;font-size:.78rem">${escapeHtml(featured.genre || '')}</span>
+      ${featured.dur    ? `<span>${escapeHtml(featured.dur)}</span>` : ''}
+    `;
+  }
 }
 
 // ── Player / Server Picker ───────────────────────────────
@@ -946,6 +968,7 @@ async function fetchLiveTitles() {
       comedy:      'rowComedy',
       scifi:       'rowScifi',
       drama:       'rowDrama',
+      tvShows:     'rowTvShows',
     };
 
     let total = 0;
@@ -957,6 +980,16 @@ async function fetchLiveTitles() {
       track.innerHTML = '';
       titles.forEach((t, i) => track.appendChild(buildLiveCard(apiToMovie(t, i))));
       total += titles.length;
+    }
+
+    // Update hero with first trending TMDB title if available
+    const firstTrending = (data.categories.trending || [])[0];
+    if (firstTrending) {
+      const heroMovie = apiToMovie(firstTrending, 0);
+      updateHero(heroMovie);
+      // Rewire hero buttons to open the TMDB modal
+      document.getElementById('heroWatch').onclick = (e) => { e.preventDefault(); openLiveModal(heroMovie); };
+      document.getElementById('heroMoreInfo').onclick = (e) => { e.preventDefault(); openLiveModal(heroMovie); };
     }
 
     if (total > 0) showToast(`${total} titles loaded from TMDB`);

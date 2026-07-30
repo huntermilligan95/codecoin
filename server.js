@@ -186,13 +186,14 @@ app.get('/api/titles', async (req, res) => {
   if (cached) return res.json(cached);
 
   try {
-    const [trending, newReleases, action, comedy, scifi, drama] = await Promise.all([
+    const [trending, newReleases, action, comedy, scifi, drama, tvShows] = await Promise.all([
       tmdb('/trending/all/week'),
       tmdb('/movie/now_playing'),
       tmdb('/discover/movie', { with_genres: 28,  sort_by: 'popularity.desc' }),
       tmdb('/discover/movie', { with_genres: 35,  sort_by: 'popularity.desc' }),
       tmdb('/discover/movie', { with_genres: 878, sort_by: 'popularity.desc' }),
       tmdb('/discover/movie', { with_genres: 18,  sort_by: 'popularity.desc' }),
+      tmdb('/trending/tv/week'),
     ]);
 
     const payload = {
@@ -204,6 +205,7 @@ app.get('/api/titles', async (req, res) => {
         comedy:      (comedy.results      || []).slice(0, 20).map(mapItem),
         scifi:       (scifi.results       || []).slice(0, 20).map(mapItem),
         drama:       (drama.results       || []).slice(0, 20).map(mapItem),
+        tvShows:     (tvShows.results     || []).slice(0, 20).map(mapItem),
       },
     };
     titlesCache.set('all', payload);
