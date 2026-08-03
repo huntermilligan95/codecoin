@@ -241,7 +241,8 @@ function initHero() {
 function updateHero(featured) {
   const bg = document.getElementById('heroBg');
   const titleEl = document.getElementById('heroTitle');
-  const metaEl = document.getElementById('heroMeta');
+  const metaEl  = document.getElementById('heroMeta');
+  const descEl  = document.getElementById('heroDesc');
 
   if (featured.poster) {
     // Use TMDB poster for hero background
@@ -253,6 +254,7 @@ function updateHero(featured) {
   bg.style.backgroundPosition = 'center';
 
   if (titleEl) titleEl.textContent = featured.title;
+  if (descEl)  descEl.textContent  = featured.desc || '';
   if (metaEl) {
     metaEl.innerHTML = `
       ${featured.rating ? `<span style="color:#f59e0b;font-weight:700"><i class="fa-solid fa-star"></i> ${escapeHtml(featured.rating)}</span>` : ''}
@@ -915,14 +917,25 @@ function openLiveModal(movie) {
   `;
 
   const watchBtn = document.getElementById('modalWatch');
-  watchBtn.onclick = (e) => {
+  watchBtn.onclick = async (e) => {
     e.preventDefault();
     closeModal();
-    if (movie.tmdbId) {
-      openPlayer(movie.title, movie.tmdbId, movie.mediaType, movie.seasons || 1, movie.epCounts);
-    } else {
+    if (!movie.tmdbId) {
       showToast('Streaming not available for this title');
+      return;
     }
+    // For TMDB titles outside the hardcoded catalog, fetch real season data
+    if (movie.mediaType === 'tv' && !movie.epCounts) {
+      try {
+        const resp = await fetch(`/api/tv/${movie.tmdbId}`);
+        const data = await resp.json();
+        if (data.ok) {
+          movie.seasons  = data.seasons;
+          movie.epCounts = data.epCounts;
+        }
+      } catch (_) { /* fall through with defaults */ }
+    }
+    openPlayer(movie.title, movie.tmdbId, movie.mediaType, movie.seasons || 1, movie.epCounts);
   };
 
   // Persist to the same localStorage watchlist as catalog titles

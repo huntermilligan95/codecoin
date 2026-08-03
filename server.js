@@ -54,6 +54,7 @@ function makeCache(ttlMs) {
 
 const titlesCache = makeCache(10 * 60 * 1000); // 10 minutes
 const imageCache  = makeCache(5  * 60 * 1000); // 5 minutes
+const tvCache     = makeCache(60 * 60 * 1000); // 1 hour (season data rarely changes)
 
 // ── Host allowlist check (exact match or proper subdomain) ──
 function hostAllowed(hostname, domain) {
@@ -230,6 +231,35 @@ app.get('/api/search', async (req, res) => {
     res.json({ ok: true, count: titles.length, titles });
   } catch (err) {
     res.status(502).json({ ok: false, error: err.message, titles: [] });
+  }
+});
+
+// ── API: TMDB TV show details (seasons + episode counts) ──
+app.get('/api/tv/:id', async (req, res) => {
+  if (!TMDB_KEY) return res.json({ ok: false, error: 'TMDB_API_KEY not configured' });
+
+  const id = parseInt(req.params.id, 10);
+  if (!Number.isInteger(id) || id <= 0) {
+    return res.status(400).json({ ok: false, error: 'Invalid TV show id' });
+  }
+
+  const cacheKey = String(id);
+  const cached = tvCache.get(cacheKey);
+  if (cached) return res.json(cached);
+
+  try {
+    const data = await tmdb(`/tv/${id}`);
+    // Exclude specials (season_number 0); fall back to 1 season / 20 episodes
+    const realSeasons = (data.seasons || []).filter(s => s.season_number > 0);
+    const payload = {
+      ok: true,
+      seasons:  realSeasons.length || 1,
+      epCounts: realSeasons.length ? realSeasons.map(s => s.episode_count || 20) : undefined,
+    };
+    tvCache.set(cacheKey, payload);
+    res.json(payload);
+  } catch (err) {
+    res.status(502).json({ ok: false, error: err.message });
   }
 });
 
